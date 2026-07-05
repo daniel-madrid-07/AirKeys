@@ -24,8 +24,9 @@ a = Analysis(
     hiddenimports=hidden,
     hookspath=[],
     runtime_hooks=[],
-    # OJO: mediapipe importa matplotlib internamente -> no se puede excluir
-    excludes=["tkinter", "PyQt5", "PySide2"],
+    # OJO: mediapipe importa matplotlib internamente -> no se puede excluir.
+    # tkinter se usa para la GUI.
+    excludes=["PyQt5", "PySide2"],
     noarchive=False,
 )
 pyz = PYZ(a.pure)
@@ -34,7 +35,7 @@ exe = EXE(
     pyz, a.scripts, [],
     exclude_binaries=True,
     name="AirKeys",
-    console=True,           # menu por consola
+    console=False,          # aplicacion de ventana (GUI)
     icon=None,
 )
 coll = COLLECT(

@@ -104,14 +104,17 @@ def _menu():
 def main():
     ap = argparse.ArgumentParser(description="AirKeys")
     ap.add_argument("command", nargs="?", help="mouse|keyboard|gaming|calibrate-mouse|"
-                    "calibrate-tap|record|train|check")
+                    "calibrate-tap|record|train|check|menu (sin comando = ventana)")
     ap.add_argument("--real", action="store_true",
                     help="control real (envia teclas/clicks). Sin esto = modo prueba.")
     args = ap.parse_args()
-    if args.command:
+    if args.command == "menu":
+        _menu()
+    elif args.command:
         _dispatch(args.command, args.real)
     else:
-        _menu()
+        from src.gui import main as gui_main   # sin argumentos -> aplicacion
+        gui_main()
 
 
 if __name__ == "__main__":
