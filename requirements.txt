@@ -1,0 +1,6 @@
+mediapipe==0.10.35
+opencv-python==4.11.0.86
+numpy==2.1.3
+pynput==1.7.7
+torch==2.12.1
+pygrabber==0.2

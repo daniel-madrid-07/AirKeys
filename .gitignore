@@ -1,0 +1,23 @@
+# Entorno / cache
+.venv/
+__pycache__/
+*.pyc
+
+# Datos de usuario (grabaciones, calibracion, modelos entrenados)
+data/
+models/*.pt
+models/mouse_axes.npz
+models/mouse_calib.npz
+settings.json
+
+# Empaquetado
+build/
+dist/
+*.egg-info/
+
+# Scratch
+scratch/
+
+# SE MANTIENE en el repo:
+#   models/hand_landmarker.task  (modelo de MediaPipe, necesario)
+#   packaging/*.spec, *.iss      (build)
