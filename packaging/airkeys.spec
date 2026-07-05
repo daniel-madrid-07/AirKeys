@@ -24,7 +24,8 @@ a = Analysis(
     hiddenimports=hidden,
     hookspath=[],
     runtime_hooks=[],
-    excludes=["matplotlib", "tkinter", "PyQt5", "PySide2"],
+    # OJO: mediapipe importa matplotlib internamente -> no se puede excluir
+    excludes=["tkinter", "PyQt5", "PySide2"],
     noarchive=False,
 )
 pyz = PYZ(a.pure)
