@@ -36,10 +36,11 @@ FB = ("Segoe UI", 10, "bold")
 FH = ("Segoe UI", 20, "bold")
 
 MODE_INFO = {
-    "mouse":    ("Raton", "indice arriba mueve · CURVA el indice = clic izq · ABRE el pulgar = der · mano plana = congela"),
-    "gaming":   ("Gaming", "mano dcha = raton · mano izq = teclas mantenidas (WASD...)"),
-    "keyboard": ("Teclado", "escribir letras en el aire (requiere grabar y entrenar)"),
+    "mouse":    ("Modo raton", "indice arriba mueve · CURVA el indice = clic izq · ABRE el pulgar = der · mano plana = congela"),
+    "keyboard": ("Modo teclado", "escribir letras en el aire (requiere grabar y entrenar)"),
+    "gaming":   ("Modo teclado + raton", "mano dcha = raton · mano izq = teclas mantenidas (WASD...)"),
 }
+MODE_ORDER = ("mouse", "keyboard", "gaming")
 SLIDERS = [
     ("MOUSE_GAIN", "Sensibilidad del raton", 0.3, 3.0, 0.05),
     ("MOUSE_SMOOTH", "Respuesta (menor = mas suave)", 0.10, 0.80, 0.01),
@@ -100,8 +101,8 @@ class App:
         seg = tk.Frame(bar, bg=BG)
         seg.pack(side="left")
         self.mode_btns = {}
-        for m in ("mouse", "gaming", "keyboard"):
-            b = tk.Button(seg, text=MODE_INFO[m][0], font=FB, bd=0, padx=16, pady=9,
+        for m in MODE_ORDER:
+            b = tk.Button(seg, text=MODE_INFO[m][0], font=FB, bd=0, padx=14, pady=9,
                           command=lambda mm=m: self.set_mode(mm))
             b.pack(side="left", padx=(0, 6))
             self.mode_btns[m] = b
