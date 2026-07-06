@@ -44,6 +44,12 @@ Write-Host "OK -> dist\AirKeys\AirKeys.exe" -ForegroundColor Green
 
 # Instalador opcional con Inno Setup si esta instalado
 $iscc = Get-Command iscc.exe -ErrorAction SilentlyContinue
+if (-not $iscc) {
+    foreach ($p in @("$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
+                     "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+        if (Test-Path $p) { $iscc = Get-Command $p; break }
+    }
+}
 if ($iscc) {
     Write-Host "== Generando instalador (Inno Setup) ==" -ForegroundColor Cyan
     & $iscc.Source "packaging\installer.iss"
