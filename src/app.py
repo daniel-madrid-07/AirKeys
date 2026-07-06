@@ -129,39 +129,31 @@ class Engine:
             self.gaming = HeldFingerKeys(KeyOut(type_real))
 
     def process(self, frame, now=None):
+        """Devuelve (frame_con_landmarks, info). info es un dict con el estado para
+        que lo pinte la interfaz (HTML) o el modo consola. NO escribe texto sobre el
+        frame: solo dibuja los landmarks."""
         now = time.perf_counter() if now is None else now
-        h = frame.shape[0]
         feat, res = self.tracker.process(frame)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if self.mouse else None
         draw(frame, res)
 
-        status = self.mode
+        info = {"mode": self.mode, "status": self.mode, "frozen": False,
+                "left": False, "right": False, "idx": 0.0, "thumb": 0.0,
+                "keys": "", "hand": bool(res.hand_landmarks)}
         if self.mouse:
-            info, ev = self.mouse.tick(frame, gray, res, now)
-            if info:
-                status = "PLANA (congelado)" if info["frozen"] else "raton"
-                if ev["left"]:
-                    status += " · IZQ"
-                if ev["right"]:
-                    status += " · DER"
-                # valores en vivo para afinar (i=curvatura indice, t=pulgar abierto)
-                cv2.putText(frame, f"i:{ev['idx']:.2f}  t:{ev['thumb']:.2f}",
-                            (12, 72), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 200, 255), 2)
+            minfo, ev = self.mouse.tick(frame, gray, res, now)
+            if minfo:
+                info["frozen"] = minfo["frozen"]
+                info["left"], info["right"] = ev["left"], ev["right"]
+                info["idx"], info["thumb"] = ev["idx"], ev["thumb"]
+                info["status"] = "congelado" if minfo["frozen"] else "raton"
         if self.keyboard:
             self.keyboard.tick(feat, now)
-            if self.keyboard.recent:
-                cv2.putText(frame, "".join(self.keyboard.recent), (12, h - 24),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
+            info["keys"] = "".join(self.keyboard.recent)
         if self.gaming:
             held = self.gaming.update(feat)
-            pressed = [self.gaming.keys[f] for f, d in held.items() if d]
-            if pressed:
-                cv2.putText(frame, " ".join(pressed).upper(), (12, h - 24),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 255), 2)
-
-        cv2.putText(frame, status, (12, 40), cv2.FONT_HERSHEY_SIMPLEX,
-                    0.9, (0, 255, 0), 2)
-        return frame, status
+            info["keys"] = " ".join(self.gaming.keys[f] for f, d in held.items() if d).upper()
+        return frame, info
 
     def close(self):
         if self.mouse:
@@ -186,7 +178,17 @@ def run(mode, type_real=False):
             ok, frame = cap.read()
             if not ok:
                 break
-            frame, _ = engine.process(orient(frame))
+            frame, info = engine.process(orient(frame))
+            txt = info["status"]
+            if info["left"]:
+                txt += " IZQ"
+            if info["right"]:
+                txt += " DER"
+            cv2.putText(frame, txt, (12, 40), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.9, (0, 255, 0), 2)
+            if info["keys"]:
+                cv2.putText(frame, info["keys"], (12, frame.shape[0] - 24),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
             cv2.imshow(title, frame)
             k = cv2.waitKey(1) & 0xFF
             if k in (27, ord("q")):

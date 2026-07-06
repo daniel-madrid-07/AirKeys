@@ -21,6 +21,9 @@ Write-Host "== Empaquetando (esto tarda) ==" -ForegroundColor Cyan
 # NO --windowed (PyInstaller 6.21 pierde binarios); la GUI oculta su consola sola.
 & $py -m PyInstaller --noconfirm --onedir --name AirKeys `
     --collect-all torch `
+    --collect-all webview `
+    --collect-all flask `
+    --collect-submodules clr_loader `
     --collect-data mediapipe `
     --collect-submodules mediapipe `
     --collect-submodules comtypes `
@@ -29,6 +32,7 @@ Write-Host "== Empaquetando (esto tarda) ==" -ForegroundColor Cyan
     --add-data "models/hand_landmarker.task;models" `
     --add-data "settings.example.json;." `
     --add-data "GUIDE.md;." `
+    --add-data "src/webgui/static;src/webgui/static" `
     airkeys.py
 
 if (-not (Test-Path "dist\AirKeys\AirKeys.exe")) {

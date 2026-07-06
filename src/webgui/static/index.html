@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AirKeys</title>
+<style>
+  :root{
+    --bg:#0a0d12; --bg2:#0e131a; --panel:#131a23; --panel2:#182130;
+    --line:#20293650; --fg:#eaf0f6; --mut:#8a97a6; --acc:#c6f24e; --acc-d:#a6d62f;
+    --red:#ff6b6b; --blu:#5cc8ff;
+    --disp:"Bahnschrift","DIN Alternate","Segoe UI Variable Display",sans-serif;
+    --body:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--body); color:var(--fg); overflow:hidden;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #16202c 0%, transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, #14241e 0%, transparent 55%),
+      var(--bg);
+  }
+  .app{display:flex;flex-direction:column;height:100vh;padding:22px 26px 20px;gap:16px;
+       animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  /* header */
+  header{display:flex;align-items:center;gap:14px}
+  .logo{font-family:var(--disp);font-weight:700;font-size:30px;letter-spacing:.06em;
+        text-transform:uppercase}
+  .logo b{color:var(--acc)}
+  .tag{color:var(--mut);font-size:13px;letter-spacing:.02em}
+  .live{margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--mut);
+        font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+  .dot{width:9px;height:9px;border-radius:50%;background:#3a4553;transition:.3s}
+  .dot.on{background:var(--acc);box-shadow:0 0 0 0 var(--acc);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 #c6f24e88}70%{box-shadow:0 0 0 8px #c6f24e00}100%{box-shadow:0 0 0 0 #c6f24e00}}
+  .gear{margin-left:6px;width:38px;height:38px;border:1px solid var(--line);border-radius:12px;
+        background:var(--panel);color:var(--mut);cursor:pointer;display:grid;place-items:center;
+        transition:.2s}
+  .gear:hover{color:var(--fg);border-color:#33404f;transform:rotate(30deg)}
+
+  /* video stage */
+  .stage{position:relative;flex:1;border-radius:20px;overflow:hidden;
+         background:linear-gradient(180deg,#0c1016,#0a0d12);
+         border:1px solid var(--line);
+         box-shadow:inset 0 0 0 1px #ffffff08, 0 30px 80px -40px #000;
+         display:grid;place-items:center;transition:.4s}
+  .stage.live{border-color:#c6f24e40;box-shadow:inset 0 0 0 1px #c6f24e18,0 0 60px -20px #c6f24e55,0 30px 80px -40px #000}
+  #cam{width:100%;height:100%;object-fit:contain;display:none;background:#06080b}
+  .placeholder{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--mut);gap:6px}
+  .placeholder svg{opacity:.5}
+  .placeholder .big{font-family:var(--disp);font-size:20px;color:#c3ccd6;letter-spacing:.04em;margin-top:10px}
+  .placeholder .sm{font-size:13px}
+
+  /* overlays */
+  .ov{position:absolute;display:flex;gap:8px;align-items:center}
+  .ov-tl{top:14px;left:14px}
+  .ov-tr{top:14px;right:14px;flex-direction:column;align-items:flex-end;gap:6px}
+  .ov-bc{bottom:16px;left:50%;transform:translateX(-50%)}
+  .chip{background:#0b0f14cc;backdrop-filter:blur(8px);border:1px solid var(--line);
+        border-radius:999px;padding:7px 13px;font-size:12.5px;letter-spacing:.03em;
+        color:#cdd6e0;display:flex;align-items:center;gap:8px}
+  .chip .k{color:var(--mut);text-transform:uppercase;font-size:10.5px;letter-spacing:.1em}
+  .chip.hot{border-color:#c6f24e66;color:var(--acc)}
+  .btnpill{padding:7px 14px;border-radius:999px;font-family:var(--disp);font-weight:700;
+           letter-spacing:.05em;font-size:13px;border:1px solid transparent;opacity:.35;transition:.15s}
+  .btnpill.l{background:#ff6b6b22;color:#ff9d9d;border-color:#ff6b6b40}
+  .btnpill.r{background:#5cc8ff22;color:#bfe6ff;border-color:#5cc8ff40}
+  .btnpill.on{opacity:1;transform:scale(1.04)}
+  .meter{display:flex;align-items:center;gap:8px;background:#0b0f14cc;border:1px solid var(--line);
+         border-radius:999px;padding:6px 12px;font-size:11px;color:var(--mut)}
+  .bar{width:74px;height:6px;border-radius:3px;background:#222c38;overflow:hidden}
+  .bar>i{display:block;height:100%;width:0;background:var(--acc);transition:width .1s}
+  .keys{font-family:var(--disp);font-weight:700;font-size:22px;letter-spacing:.14em;color:#fff;
+        background:#0b0f14cc;border:1px solid var(--line);border-radius:12px;padding:6px 16px}
+
+  /* controls */
+  .controls{display:flex;align-items:center;gap:14px}
+  .seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;gap:2px}
+  .seg button{font-family:var(--disp);font-weight:600;letter-spacing:.03em;font-size:14px;
+              color:var(--mut);background:transparent;border:0;padding:11px 18px;border-radius:11px;
+              cursor:pointer;transition:.18s;white-space:nowrap}
+  .seg button:hover{color:var(--fg)}
+  .seg button.on{background:var(--acc);color:#0c1206;box-shadow:0 6px 18px -8px var(--acc)}
+
+  .switch{display:flex;align-items:center;gap:10px;color:var(--mut);font-size:13px;cursor:pointer;user-select:none}
+  .track{width:46px;height:26px;border-radius:999px;background:#26313e;position:relative;transition:.2s}
+  .track::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
+                background:#8a97a6;transition:.2s}
+  .switch.on .track{background:var(--acc)}
+  .switch.on .track::after{left:23px;background:#0c1206}
+  .switch.on{color:var(--fg)}
+
+  .go{margin-left:auto;font-family:var(--disp);font-weight:700;letter-spacing:.06em;font-size:16px;
+      padding:14px 30px;border-radius:14px;border:0;cursor:pointer;color:#0c1206;background:var(--acc);
+      box-shadow:0 12px 30px -12px var(--acc);transition:.15s}
+  .go:hover{transform:translateY(-1px);box-shadow:0 16px 36px -12px var(--acc)}
+  .go:active{transform:translateY(0)}
+  .go.stop{background:#1a222c;color:var(--red);border:1px solid #ff6b6b40;box-shadow:none}
+  .hint{color:var(--mut);font-size:12.5px;min-height:16px;letter-spacing:.01em}
+
+  /* drawer */
+  .scrim{position:fixed;inset:0;background:#000000aa;opacity:0;pointer-events:none;transition:.25s;z-index:5}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:380px;background:var(--bg2);
+          border-left:1px solid var(--line);transform:translateX(100%);transition:.3s cubic-bezier(.2,.7,.2,1);
+          z-index:6;display:flex;flex-direction:column;padding:24px;gap:8px;overflow:auto}
+  .drawer.on{transform:none}
+  .drawer h2{font-family:var(--disp);font-weight:700;letter-spacing:.05em;font-size:20px;margin-bottom:4px}
+  .sect{color:var(--mut);text-transform:uppercase;letter-spacing:.12em;font-size:11px;margin:16px 0 6px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0}
+  .row label{font-size:13px;color:#cdd6e0}
+  .row input[type=range]{width:150px;accent-color:var(--acc)}
+  .row .val{font-family:var(--disp);font-size:12px;color:var(--acc);width:52px;text-align:right}
+  select{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-family:var(--body)}
+  .tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+  .tools button{background:var(--panel);color:#cdd6e0;border:1px solid var(--line);border-radius:11px;
+                padding:11px;font-size:12.5px;cursor:pointer;transition:.15s}
+  .tools button:hover{border-color:#33404f;color:#fff;background:var(--panel2)}
+  .save{margin-top:auto;background:var(--acc);color:#0c1206;border:0;border-radius:12px;padding:13px;
+        font-family:var(--disp);font-weight:700;letter-spacing:.05em;cursor:pointer}
+  .err{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;
+       background:#2a1517;border:1px solid #ff6b6b55;color:#ffb3b3;padding:12px 18px;border-radius:12px;
+       font-size:13px;max-width:70%;transition:.3s;z-index:7}
+  .err.on{opacity:1;transform:translateX(-50%)}
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="logo">Air<b>Keys</b></div>
+      <div class="tag">raton y teclado invisibles</div>
+      <div class="live"><span class="dot" id="dot"></span><span id="livetxt">en reposo</span></div>
+      <button class="gear" id="gear" title="Ajustes">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 4.6 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9l-.1-.1A2 2 0 1 1 8.5 5.2l.1.1a1.7 1.7 0 0 0 2.9-1.2 2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1 2 2 0 1 1 0 4 1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </header>
+
+    <div class="stage" id="stage">
+      <img id="cam" alt="">
+      <div class="placeholder" id="ph">
+        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#c6f24e" stroke-width="1.3"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12m0-1V4.5a1.5 1.5 0 0 1 3 0V12m0-.5V6a1.5 1.5 0 0 1 3 0v7a6 6 0 0 1-6 6h-1a5 5 0 0 1-4.4-2.6L4 14.5a1.6 1.6 0 0 1 2.7-1.7L8 14"/></svg>
+        <div class="big">Elige un modo y pulsa Iniciar</div>
+        <div class="sm">el video aparecera aqui</div>
+      </div>
+      <div class="ov ov-tl">
+        <div class="chip" id="statChip"><span class="k">modo</span> <span id="statTxt">raton</span></div>
+        <div class="chip" id="fpsChip"><span class="k">fps</span> <span id="fpsTxt">0</span></div>
+      </div>
+      <div class="ov ov-tr" id="meters" style="display:none">
+        <div class="meter">izq <div class="bar"><i id="mThumb"></i></div></div>
+        <div class="meter">der <div class="bar"><i id="mIdx"></i></div></div>
+        <div style="display:flex;gap:8px">
+          <span class="btnpill l" id="pillL">IZQ</span>
+          <span class="btnpill r" id="pillR">DER</span>
+        </div>
+      </div>
+      <div class="ov ov-bc"><span class="keys" id="keys" style="display:none"></span></div>
+    </div>
+
+    <div class="controls">
+      <div class="seg" id="seg"></div>
+      <div class="switch" id="realsw"><div class="track"></div><span>Control real</span></div>
+      <button class="go" id="go">Iniciar</button>
+    </div>
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <div class="scrim" id="scrim"></div>
+  <aside class="drawer" id="drawer">
+    <h2>Ajustes</h2>
+    <div class="sect">Camara (montaje cenital)</div>
+    <div class="row"><label>Rotar imagen</label>
+      <select id="s_CAM_ROTATE"><option>0</option><option>90</option><option>180</option><option>270</option></select></div>
+    <div class="row"><label>Espejo horizontal</label>
+      <div class="switch" id="s_FLIP_HORIZONTAL"><div class="track"></div></div></div>
+    <div class="sect">Raton</div>
+    <div class="row"><label>Sensibilidad</label><input type="range" id="s_MOUSE_GAIN" min="0.3" max="3" step="0.05"><span class="val" id="v_MOUSE_GAIN"></span></div>
+    <div class="row"><label>Suavizado</label><input type="range" id="s_MOUSE_SMOOTH" min="0.1" max="0.8" step="0.01"><span class="val" id="v_MOUSE_SMOOTH"></span></div>
+    <div class="row"><label>Zona muerta</label><input type="range" id="s_MOUSE_DEADZONE" min="0" max="0.003" step="0.0001"><span class="val" id="v_MOUSE_DEADZONE"></span></div>
+    <div class="row"><label>Aceleracion</label><input type="range" id="s_MOUSE_ACCEL" min="0" max="3" step="0.1"><span class="val" id="v_MOUSE_ACCEL"></span></div>
+    <div class="sect">Umbrales de clic</div>
+    <div class="row"><label>Clic izq (pulgar)</label><input type="range" id="s_MOUSE_THUMB_OPEN" min="0.4" max="1.6" step="0.02"><span class="val" id="v_MOUSE_THUMB_OPEN"></span></div>
+    <div class="row"><label>Clic der (indice)</label><input type="range" id="s_MOUSE_INDEX_EXTEND" min="0.5" max="0.98" step="0.02"><span class="val" id="v_MOUSE_INDEX_EXTEND"></span></div>
+    <div class="sect">Calibracion</div>
+    <div class="tools">
+      <button data-tool="calibrate-mouse">Calibrar raton</button>
+      <button data-tool="check">Comprobar camara</button>
+      <button data-tool="record">Grabar teclado</button>
+      <button data-tool="train">Entrenar teclado</button>
+      <button data-tool="calibrate-tap">Calibrar tap</button>
+    </div>
+    <button class="save" id="save">Guardar ajustes</button>
+  </aside>
+
+  <div class="err" id="err"></div>
+
+<script>
+const MODES = {
+  mouse:    {label:"Modo raton", hint:"PUÑO mueve · abre el PULGAR = clic izq · estira el INDICE = clic der · mano PLANA = congela"},
+  keyboard: {label:"Modo teclado", hint:"escribir letras en el aire (requiere grabar y entrenar)"},
+  gaming:   {label:"Modo teclado + raton", hint:"mano derecha = raton · mano izquierda = teclas mantenidas"},
+};
+const SETTINGS = ["MOUSE_GAIN","MOUSE_SMOOTH","MOUSE_DEADZONE","MOUSE_ACCEL","MOUSE_THUMB_OPEN","MOUSE_INDEX_EXTEND"];
+let mode = "mouse", real = false, running = false;
+
+const $ = s => document.querySelector(s);
+async function api(path, body){
+  const o = {method: body?"POST":"GET"};
+  if(body){o.headers={"Content-Type":"application/json"};o.body=JSON.stringify(body);}
+  return (await fetch(path,o)).json();
+}
+
+// modos
+const seg = $("#seg");
+for(const m in MODES){
+  const b=document.createElement("button"); b.textContent=MODES[m].label; b.dataset.m=m;
+  b.onclick=()=>setMode(m); seg.appendChild(b);
+}
+function setMode(m){mode=m;[...seg.children].forEach(b=>b.classList.toggle("on",b.dataset.m===m));
+  $("#hint").textContent=MODES[m].hint; $("#statTxt").textContent=MODES[m].label.replace("Modo ","");}
+setMode("mouse");
+
+// switch control real
+$("#realsw").onclick=()=>{real=!real;$("#realsw").classList.toggle("on",real);};
+
+// iniciar/detener
+$("#go").onclick=async()=>{
+  if(running){await api("/api/stop",{});setRunning(false);}
+  else{await api("/api/start",{mode,real});setRunning(true);
+       $("#cam").src="/video?"+Date.now();}
+};
+function setRunning(on){
+  running=on;
+  $("#go").textContent=on?"Detener":"Iniciar"; $("#go").classList.toggle("stop",on);
+  $("#stage").classList.toggle("live",on); $("#dot").classList.toggle("on",on);
+  $("#livetxt").textContent=on?"en marcha":"en reposo";
+  $("#cam").style.display=on?"block":"none"; $("#ph").style.display=on?"none":"grid";
+  $("#meters").style.display=(on&&mode==="mouse")?"flex":"none";
+  [...seg.children].forEach(b=>b.style.pointerEvents=on?"none":"auto");
+  if(!on){$("#cam").src="";$("#keys").style.display="none";}
+}
+
+// drawer
+$("#gear").onclick=()=>{$("#drawer").classList.add("on");$("#scrim").classList.add("on");};
+$("#scrim").onclick=()=>{$("#drawer").classList.remove("on");$("#scrim").classList.remove("on");};
+$("#drawer").querySelectorAll("[data-tool]").forEach(b=>b.onclick=async()=>{
+  setRunning(false); await api("/api/tool",{name:b.dataset.tool});
+  $("#hint").textContent="Se abrio una ventana aparte para: "+b.textContent;
+});
+SETTINGS.forEach(k=>{const el=$("#s_"+k);if(el)el.oninput=()=>$("#v_"+k).textContent=(+el.value).toFixed(k==="MOUSE_DEADZONE"?4:2);});
+$("#s_FLIP_HORIZONTAL").onclick=e=>e.currentTarget.classList.toggle("on");
+$("#save").onclick=async()=>{
+  const d={};
+  SETTINGS.forEach(k=>d[k]=+$("#s_"+k).value);
+  d.CAM_ROTATE=+$("#s_CAM_ROTATE").value;
+  d.FLIP_HORIZONTAL=$("#s_FLIP_HORIZONTAL").classList.contains("on");
+  await api("/api/settings",d);
+  $("#hint").textContent="Ajustes guardados. Se aplican al (re)iniciar un modo.";
+  $("#drawer").classList.remove("on");$("#scrim").classList.remove("on");
+};
+async function loadSettings(){
+  const s=await api("/api/settings");
+  SETTINGS.forEach(k=>{if($("#s_"+k)){$("#s_"+k).value=s[k];$("#v_"+k).textContent=(+s[k]).toFixed(k==="MOUSE_DEADZONE"?4:2);}});
+  $("#s_CAM_ROTATE").value=s.CAM_ROTATE;
+  $("#s_FLIP_HORIZONTAL").classList.toggle("on",!!s.FLIP_HORIZONTAL);
+}
+loadSettings();
+
+// poll estado
+let errT;
+setInterval(async()=>{
+  let st; try{st=await api("/api/status");}catch(e){return;}
+  if(st.error){showErr(st.error);setRunning(false);return;}
+  if(st.running!==running)setRunning(st.running);
+  if(!st.running)return;
+  const i=st.info||{};
+  $("#fpsTxt").textContent=st.fps;
+  $("#statTxt").textContent=i.frozen?"congelado":(MODES[mode].label.replace("Modo ",""));
+  $("#statChip").classList.toggle("hot",!!i.frozen);
+  if(mode==="mouse"){
+    $("#mThumb").style.width=Math.min(100,(i.thumb/1.6)*100)+"%";
+    $("#mIdx").style.width=Math.min(100,(i.idx)*100)+"%";
+    $("#pillL").classList.toggle("on",!!i.left);
+    $("#pillR").classList.toggle("on",!!i.right);
+  }
+  if(i.keys){$("#keys").style.display="inline-block";$("#keys").textContent=i.keys;}
+  else $("#keys").style.display="none";
+},180);
+function showErr(m){$("#err").textContent=m;$("#err").classList.add("on");clearTimeout(errT);
+  errT=setTimeout(()=>$("#err").classList.remove("on"),6000);}
+</script>
+</body>
+</html>
