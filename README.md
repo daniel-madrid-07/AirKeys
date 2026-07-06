@@ -22,7 +22,8 @@ Your hand in the air *is* the device — no hardware, no gloves, fully offline.
 
 | Version | Installer | Portable | Status |
 |---------|-----------|----------|--------|
-| **v0.9.0-beta** | [AirKeys-v0.9.0-beta-Setup.exe](https://github.com/daniel-madrid-07/AirKeys/releases/download/v0.9.0-beta/AirKeys-v0.9.0-beta-Setup.exe) | [AirKeys-v0.9.0-beta-win64.zip](https://github.com/daniel-madrid-07/AirKeys/releases/download/v0.9.0-beta/AirKeys-v0.9.0-beta-win64.zip) | Beta |
+| **v0.9.1** | [AirKeys-v0.9.1-Setup.exe](https://github.com/daniel-madrid-07/AirKeys/releases/download/v0.9.1/AirKeys-v0.9.1-Setup.exe) | [AirKeys-v0.9.1-win64.zip](https://github.com/daniel-madrid-07/AirKeys/releases/download/v0.9.1/AirKeys-v0.9.1-win64.zip) | Latest — untrained keyboard + auto-updater |
+| v0.9.0-beta | [Setup.exe](https://github.com/daniel-madrid-07/AirKeys/releases/download/v0.9.0-beta/AirKeys-v0.9.0-beta-Setup.exe) | [win64.zip](https://github.com/daniel-madrid-07/AirKeys/releases/download/v0.9.0-beta/AirKeys-v0.9.0-beta-win64.zip) | Beta |
 
 Every version, with release notes, on the [Releases page](../../releases).
 
