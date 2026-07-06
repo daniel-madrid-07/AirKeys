@@ -1,42 +1,55 @@
-"""Interfaz grafica de AirKeys (tkinter, sin dependencias extra).
+"""AirKeys — aplicacion de ventana con VIDEO EN VIVO dentro de la ventana.
 
-Panel de control: elige modo, control real o prueba, calibraciones y ajustes.
-Cada accion corre en un subproceso (la ventana de camara es la de OpenCV);
-la GUI captura su salida en el panel de log y puede detenerlo.
+El motor (Engine) corre en un hilo: lee la camara, procesa y deja el frame en una
+cola; la UI lo pinta. Modos raton/gaming/teclado se ven integrados (sin ventana
+OpenCV aparte). Calibraciones y grabaciones se lanzan como proceso (tienen su propia
+ventana interactiva). Ajustes y calibracion viven en un dialogo aparte.
 """
 import json
 import queue
 import subprocess
 import sys
 import threading
+import time
 import tkinter as tk
-from tkinter import ttk
+from tkinter import messagebox
 from pathlib import Path
 
+import cv2
+from PIL import Image, ImageTk
+
 import config as C
+from src.camera import open_camera, orient
+from src.app import Engine
 
-# --- paleta (oscuro, un acento) ---
-BG = "#101418"
-PANEL = "#1a2027"
-FG = "#e8edf2"
+# --- paleta ---
+BG = "#0d1117"
+PANEL = "#161b22"
+CARD = "#1c2330"
+FG = "#e6edf3"
 MUT = "#8b98a5"
-ACC = "#3ddc84"      # verde accion
-ACC2 = "#ff5d5d"     # rojo detener
-FONT = ("Segoe UI", 10)
-FONT_B = ("Segoe UI", 10, "bold")
-FONT_H = ("Segoe UI", 18, "bold")
+ACC = "#3ddc84"
+ACC2 = "#ff6b6b"
+BLU = "#4aa3ff"
+F = ("Segoe UI", 10)
+FB = ("Segoe UI", 10, "bold")
+FH = ("Segoe UI", 20, "bold")
 
-# ajustes expuestos en la GUI: (clave, etiqueta, min, max, resolucion)
+MODE_INFO = {
+    "mouse":    ("Raton", "puño mueve · levanta indice = clic izq · saca corazon = der"),
+    "gaming":   ("Gaming", "mano dcha = raton · mano izq = teclas mantenidas (WASD...)"),
+    "keyboard": ("Teclado", "escribir letras en el aire (requiere grabar y entrenar)"),
+}
 SLIDERS = [
     ("MOUSE_GAIN", "Sensibilidad del raton", 0.3, 3.0, 0.05),
-    ("MOUSE_SMOOTH", "Rapidez de respuesta (menos = mas suave)", 0.10, 0.80, 0.01),
+    ("MOUSE_SMOOTH", "Respuesta (menor = mas suave)", 0.10, 0.80, 0.01),
     ("MOUSE_DEADZONE", "Zona muerta (anti-tembleque)", 0.0, 0.0030, 0.0001),
     ("MOUSE_ACCEL", "Aceleracion de puntero", 0.0, 3.0, 0.1),
 ]
+SETTINGS_PATH = C.APP_DIR / "settings.json"
 
 
-def _spawn_args(cmd_args):
-    """Argumentos para lanzar un subcomando de AirKeys (dev o empaquetado)."""
+def _spawn(cmd_args):
     if getattr(sys, "frozen", False):
         return [sys.executable] + cmd_args
     return [sys.executable, str(Path(__file__).resolve().parent.parent / "airkeys.py")] + cmd_args
@@ -45,199 +58,247 @@ def _spawn_args(cmd_args):
 class App:
     def __init__(self, root):
         self.root = root
-        self.proc = None
-        self.logq = queue.Queue()
+        self.mode = "mouse"
+        self.real = tk.BooleanVar(value=False)
+
+        # motor en hilo
+        self.stop_flag = threading.Event()
+        self.worker = None
+        self.frameq = queue.Queue(maxsize=1)
+        self.errq = queue.Queue()
+        self._imgtk = None
 
         root.title("AirKeys")
         root.configure(bg=BG)
-        root.geometry("560x680")
-        root.minsize(520, 600)
+        root.geometry("900x760")
+        root.minsize(760, 640)
         root.protocol("WM_DELETE_WINDOW", self.on_close)
 
+        # cabecera
         head = tk.Frame(root, bg=BG)
-        head.pack(fill="x", padx=18, pady=(14, 4))
-        tk.Label(head, text="AirKeys", font=FONT_H, fg=FG, bg=BG).pack(anchor="w")
-        tk.Label(head, text="raton y teclado invisibles por camara",
-                 font=FONT, fg=MUT, bg=BG).pack(anchor="w")
+        head.pack(fill="x", padx=22, pady=(16, 6))
+        tk.Label(head, text="AirKeys", font=FH, fg=FG, bg=BG).pack(side="left")
+        tk.Label(head, text="  raton y teclado invisibles", font=F, fg=MUT,
+                 bg=BG).pack(side="left", pady=(8, 0))
+        tk.Button(head, text="⚙  Ajustes y calibracion", font=F, bg=CARD, fg=FG,
+                  bd=0, padx=12, pady=6, activebackground="#242c3a",
+                  command=self.open_settings).pack(side="right")
 
-        # --- modos ---
-        modes = tk.LabelFrame(root, text=" Modo ", font=FONT_B, fg=MUT, bg=PANEL,
-                              bd=0, labelanchor="nw")
-        modes.pack(fill="x", padx=18, pady=8, ipady=6)
-        self.mode = tk.StringVar(value="mouse")
-        for val, txt, sub in [
-            ("mouse", "Raton", "puño mueve · indice clic izq · corazon clic der"),
-            ("gaming", "Gaming", "mano dcha raton · mano izq teclas mantenidas"),
-            ("keyboard", "Teclado", "escribir letras (requiere entrenar)"),
-        ]:
-            row = tk.Frame(modes, bg=PANEL)
-            row.pack(fill="x", padx=10, pady=2)
-            tk.Radiobutton(row, text=txt, variable=self.mode, value=val,
-                           font=FONT_B, fg=FG, bg=PANEL, selectcolor=BG,
-                           activebackground=PANEL, activeforeground=ACC,
-                           highlightthickness=0).pack(side="left")
-            tk.Label(row, text=sub, font=("Segoe UI", 8), fg=MUT, bg=PANEL).pack(
-                side="left", padx=8)
+        # video
+        self.video = tk.Label(root, bg="#05070a", fg=MUT, font=("Segoe UI", 13),
+                              text="\n\n▶  Elige un modo y pulsa Iniciar\n\n"
+                                   "el video aparecera aqui")
+        self.video.pack(fill="both", expand=True, padx=22, pady=8)
 
-        ctl = tk.Frame(root, bg=BG)
-        ctl.pack(fill="x", padx=18, pady=4)
-        self.real = tk.BooleanVar(value=False)
-        tk.Checkbutton(ctl, text="Control REAL (mueve raton / teclea de verdad)",
-                       variable=self.real, font=FONT, fg=FG, bg=BG, selectcolor=BG,
-                       activebackground=BG, activeforeground=ACC,
-                       highlightthickness=0).pack(anchor="w")
-        btns = tk.Frame(ctl, bg=BG)
-        btns.pack(fill="x", pady=6)
-        self.start_btn = tk.Button(btns, text="▶  INICIAR", font=FONT_B,
-                                   bg=ACC, fg="#08130c", bd=0, padx=18, pady=8,
-                                   activebackground="#2fbf70", command=self.start)
-        self.start_btn.pack(side="left")
-        self.stop_btn = tk.Button(btns, text="■  Detener", font=FONT_B,
-                                  bg=PANEL, fg=ACC2, bd=0, padx=14, pady=8,
-                                  activebackground="#242c35", command=self.stop,
-                                  state="disabled")
-        self.stop_btn.pack(side="left", padx=8)
-        self.status = tk.Label(btns, text="listo", font=FONT, fg=MUT, bg=BG)
-        self.status.pack(side="left", padx=10)
+        # estado
+        self.status = tk.Label(root, text="listo", font=FB, fg=MUT, bg=BG, anchor="w")
+        self.status.pack(fill="x", padx=24)
 
-        # --- preparacion ---
-        prep = tk.LabelFrame(root, text=" Preparacion ", font=FONT_B, fg=MUT,
-                             bg=PANEL, bd=0)
-        prep.pack(fill="x", padx=18, pady=8, ipady=4)
-        grid = tk.Frame(prep, bg=PANEL)
-        grid.pack(padx=10, pady=6)
+        # barra de control
+        bar = tk.Frame(root, bg=BG)
+        bar.pack(fill="x", padx=22, pady=(6, 4))
+        seg = tk.Frame(bar, bg=BG)
+        seg.pack(side="left")
+        self.mode_btns = {}
+        for m in ("mouse", "gaming", "keyboard"):
+            b = tk.Button(seg, text=MODE_INFO[m][0], font=FB, bd=0, padx=16, pady=9,
+                          command=lambda mm=m: self.set_mode(mm))
+            b.pack(side="left", padx=(0, 6))
+            self.mode_btns[m] = b
+        tk.Checkbutton(bar, text="Control REAL", variable=self.real, font=F, fg=FG,
+                       bg=BG, selectcolor=BG, activebackground=BG,
+                       activeforeground=ACC, highlightthickness=0).pack(side="left", padx=14)
+        self.stop_btn = tk.Button(bar, text="■  Detener", font=FB, bg=CARD, fg=ACC2,
+                                  bd=0, padx=16, pady=9, state="disabled",
+                                  command=self.stop)
+        self.stop_btn.pack(side="right")
+        self.start_btn = tk.Button(bar, text="▶  Iniciar", font=FB, bg=ACC,
+                                   fg="#07140d", bd=0, padx=22, pady=9,
+                                   command=self.start)
+        self.start_btn.pack(side="right", padx=8)
+
+        self.hint = tk.Label(root, text=MODE_INFO["mouse"][1], font=("Segoe UI", 9),
+                             fg=MUT, bg=BG, anchor="w")
+        self.hint.pack(fill="x", padx=24, pady=(0, 14))
+
+        self.set_mode("mouse")
+        self.root.after(33, self._tick_video)
+
+    # ---------------------------------------------------------------- modos
+    def set_mode(self, m):
+        self.mode = m
+        for k, b in self.mode_btns.items():
+            on = (k == m)
+            b.configure(bg=ACC if on else CARD, fg="#07140d" if on else FG,
+                        activebackground=ACC if on else "#242c3a")
+        self.hint.configure(text=MODE_INFO[m][1])
+
+    def _busy(self, running):
+        self.start_btn.configure(state="disabled" if running else "normal")
+        self.stop_btn.configure(state="normal" if running else "disabled")
+        for b in self.mode_btns.values():
+            b.configure(state="disabled" if running else "normal")
+
+    def start(self):
+        if self.worker and self.worker.is_alive():
+            return
+        self.stop_flag.clear()
+        mode, real = self.mode, self.real.get()
+        self.worker = threading.Thread(target=self._engine_loop, args=(mode, real),
+                                       daemon=True)
+        self.worker.start()
+        self._busy(True)
+        self.status.configure(text=f"iniciando {MODE_INFO[mode][0]}"
+                              + ("  ·  CONTROL REAL" if real else "  ·  prueba"),
+                              fg=ACC if real else BLU)
+
+    def stop(self):
+        self.stop_flag.set()
+        if self.worker:
+            self.worker.join(timeout=2.0)
+        self.worker = None
+        self._busy(False)
+        self.status.configure(text="detenido", fg=MUT)
+        self.video.configure(image="", text="\n\n▶  Elige un modo y pulsa Iniciar\n")
+        self._imgtk = None
+
+    def _engine_loop(self, mode, real):
+        engine = cap = None
+        try:
+            engine = Engine(mode, real)
+            cap = open_camera()
+            while not self.stop_flag.is_set():
+                ok, frame = cap.read()
+                if not ok:
+                    time.sleep(0.01)
+                    continue
+                frame, _ = engine.process(orient(frame))
+                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                if self.frameq.full():
+                    try:
+                        self.frameq.get_nowait()
+                    except queue.Empty:
+                        pass
+                self.frameq.put(rgb)
+        except Exception as e:
+            self.errq.put(str(e))
+        finally:
+            if engine:
+                engine.close()
+            if cap:
+                cap.release()
+
+    def _tick_video(self):
+        try:
+            while True:
+                self.status.configure(text="ERROR: " + self.errq.get_nowait(), fg=ACC2)
+                self.stop()
+        except queue.Empty:
+            pass
+        try:
+            rgb = self.frameq.get_nowait()
+            self._show(rgb)
+            if self.worker and self.worker.is_alive():
+                m = MODE_INFO[self.mode][0]
+                self.status.configure(
+                    text=f"{m} en marcha"
+                    + ("  ·  CONTROL REAL" if self.real.get() else "  ·  prueba (no controla)"),
+                    fg=ACC if self.real.get() else BLU)
+        except queue.Empty:
+            pass
+        self.root.after(33, self._tick_video)
+
+    def _show(self, rgb):
+        vw = max(320, self.video.winfo_width())
+        vh = max(240, self.video.winfo_height())
+        h, w = rgb.shape[:2]
+        s = min(vw / w, vh / h)
+        img = Image.fromarray(rgb)
+        if s < 0.999 or s > 1.001:
+            img = img.resize((max(1, int(w * s)), max(1, int(h * s))), Image.BILINEAR)
+        self._imgtk = ImageTk.PhotoImage(img)
+        self.video.configure(image=self._imgtk, text="")
+
+    # ---------------------------------------------------------- subprocesos
+    def _run_tool(self, args, label):
+        self.stop()
+        try:
+            subprocess.Popen(_spawn(args))
+            self.status.configure(text=f"{label}: ventana abierta aparte…", fg=BLU)
+        except Exception as e:
+            messagebox.showerror("AirKeys", str(e))
+
+    # ----------------------------------------------------------- ajustes
+    def open_settings(self):
+        win = tk.Toplevel(self.root, bg=BG)
+        win.title("Ajustes y calibracion")
+        win.geometry("440x560")
+        win.configure(bg=BG)
+
+        tk.Label(win, text="Calibracion", font=FB, fg=MUT, bg=BG).pack(
+            anchor="w", padx=18, pady=(16, 4))
+        cal = tk.Frame(win, bg=BG)
+        cal.pack(fill="x", padx=14)
         for i, (txt, args) in enumerate([
             ("Calibrar raton", ["calibrate-mouse"]),
             ("Comprobar camara", ["check"]),
+            ("Calibrar tap", ["calibrate-tap"]),
             ("Grabar teclado", ["record"]),
             ("Entrenar teclado", ["train"]),
-            ("Calibrar tap", ["calibrate-tap"]),
         ]):
-            tk.Button(grid, text=txt, font=FONT, bg=BG, fg=FG, bd=0, padx=10,
-                      pady=6, activebackground="#242c35", activeforeground=FG,
-                      command=lambda a=args: self.run_tool(a)).grid(
-                row=i // 3, column=i % 3, padx=4, pady=4, sticky="ew")
+            tk.Button(cal, text=txt, font=F, bg=CARD, fg=FG, bd=0, padx=10, pady=7,
+                      activebackground="#242c3a",
+                      command=lambda a=args, t=txt: self._run_tool(a, t)).grid(
+                row=i // 2, column=i % 2, padx=4, pady=4, sticky="ew")
+        cal.grid_columnconfigure(0, weight=1)
+        cal.grid_columnconfigure(1, weight=1)
 
-        # --- ajustes ---
-        conf = tk.LabelFrame(root, text=" Ajustes ", font=FONT_B, fg=MUT,
-                             bg=PANEL, bd=0)
-        conf.pack(fill="x", padx=18, pady=8, ipady=4)
-        self.vars = {}
+        cur = {}
+        if SETTINGS_PATH.exists():
+            try:
+                cur = json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
+            except Exception:
+                cur = {}
+
+        tk.Label(win, text="Camara (montaje arriba)", font=FB, fg=MUT, bg=BG).pack(
+            anchor="w", padx=18, pady=(16, 4))
+        camf = tk.Frame(win, bg=BG)
+        camf.pack(fill="x", padx=18)
+        self.s_rot = tk.IntVar(value=int(cur.get("CAM_ROTATE", getattr(C, "CAM_ROTATE", 0))))
+        self.s_flip = tk.BooleanVar(value=bool(cur.get("FLIP_HORIZONTAL", C.FLIP_HORIZONTAL)))
+        tk.Label(camf, text="Rotar imagen", font=F, fg=FG, bg=BG).pack(side="left")
+        tk.OptionMenu(camf, self.s_rot, 0, 90, 180, 270).pack(side="left", padx=8)
+        tk.Checkbutton(camf, text="espejo", variable=self.s_flip, font=F, fg=FG,
+                       bg=BG, selectcolor=BG, activebackground=BG, activeforeground=ACC,
+                       highlightthickness=0).pack(side="left", padx=12)
+
+        tk.Label(win, text="Raton", font=FB, fg=MUT, bg=BG).pack(
+            anchor="w", padx=18, pady=(16, 4))
+        self.s_vars = {}
         for key, label, lo, hi, res in SLIDERS:
-            row = tk.Frame(conf, bg=PANEL)
-            row.pack(fill="x", padx=10, pady=1)
-            tk.Label(row, text=label, font=("Segoe UI", 9), fg=FG, bg=PANEL,
-                     width=38, anchor="w").pack(side="left")
-            v = tk.DoubleVar(value=float(getattr(C, key)))
-            self.vars[key] = v
+            row = tk.Frame(win, bg=BG)
+            row.pack(fill="x", padx=18, pady=1)
+            tk.Label(row, text=label, font=("Segoe UI", 9), fg=FG, bg=BG, width=30,
+                     anchor="w").pack(side="left")
+            v = tk.DoubleVar(value=float(cur.get(key, getattr(C, key))))
+            self.s_vars[key] = v
             tk.Scale(row, variable=v, from_=lo, to=hi, resolution=res,
-                     orient="horizontal", bg=PANEL, fg=FG, troughcolor=BG,
-                     highlightthickness=0, bd=0, length=170,
-                     font=("Segoe UI", 7)).pack(side="right")
-        # camara: orientacion (util para montaje cenital/arriba)
-        camrow = tk.Frame(conf, bg=PANEL)
-        camrow.pack(fill="x", padx=10, pady=(4, 0))
-        tk.Label(camrow, text="Camara (montaje arriba)", font=("Segoe UI", 9),
-                 fg=FG, bg=PANEL, width=38, anchor="w").pack(side="left")
-        self.cam_flip = tk.BooleanVar(value=bool(C.FLIP_HORIZONTAL))
-        tk.Checkbutton(camrow, text="espejo", variable=self.cam_flip, font=("Segoe UI", 9),
-                       fg=FG, bg=PANEL, selectcolor=BG, activebackground=PANEL,
-                       activeforeground=ACC, highlightthickness=0).pack(side="right")
-        self.cam_rotate = tk.IntVar(value=int(getattr(C, "CAM_ROTATE", 0)))
-        tk.Label(camrow, text="rotar", font=("Segoe UI", 9), fg=MUT, bg=PANEL).pack(
-            side="right", padx=(0, 4))
-        tk.OptionMenu(camrow, self.cam_rotate, 0, 90, 180, 270).pack(side="right")
+                     orient="horizontal", bg=BG, fg=FG, troughcolor=CARD,
+                     highlightthickness=0, bd=0, length=150).pack(side="right")
 
-        tk.Button(conf, text="Guardar ajustes", font=FONT, bg=BG, fg=ACC, bd=0,
-                  padx=10, pady=5, activebackground="#242c35",
-                  command=self.save_settings).pack(anchor="e", padx=10, pady=6)
+        def save():
+            data = dict(cur)
+            for k, v in self.s_vars.items():
+                data[k] = round(float(v.get()), 6)
+            data["CAM_ROTATE"] = int(self.s_rot.get())
+            data["FLIP_HORIZONTAL"] = bool(self.s_flip.get())
+            SETTINGS_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+            messagebox.showinfo("AirKeys", "Ajustes guardados.\n"
+                                "Se aplican al (re)iniciar un modo.")
+            win.destroy()
 
-        # --- log ---
-        self.log = tk.Text(root, height=7, bg="#0b0e11", fg=MUT, bd=0,
-                           font=("Consolas", 8), state="disabled")
-        self.log.pack(fill="both", expand=True, padx=18, pady=(4, 14))
-        self._log("AirKeys listo. Elige modo y pulsa INICIAR. "
-                  "Los modos abren en PRUEBA salvo que marques Control REAL.")
-        self.root.after(150, self._poll)
-
-    # ------------------------------------------------------------ helpers
-    def _log(self, text):
-        self.log.configure(state="normal")
-        self.log.insert("end", text.rstrip() + "\n")
-        self.log.see("end")
-        self.log.configure(state="disabled")
-
-    def _reader(self, proc):
-        for line in iter(proc.stdout.readline, b""):
-            try:
-                self.logq.put(line.decode("utf-8", "replace"))
-            except Exception:
-                pass
-        proc.wait()
-        self.logq.put(f"__EXIT__{proc.returncode}")
-
-    def _poll(self):
-        try:
-            while True:
-                line = self.logq.get_nowait()
-                if line.startswith("__EXIT__"):
-                    self._log(f"[proceso terminado, codigo {line[8:]}]")
-                    self.proc = None
-                    self._set_running(False)
-                else:
-                    self._log(line)
-        except queue.Empty:
-            pass
-        self.root.after(150, self._poll)
-
-    def _set_running(self, running, what=""):
-        self.start_btn.configure(state="disabled" if running else "normal")
-        self.stop_btn.configure(state="normal" if running else "disabled")
-        self.status.configure(text=what if running else "listo",
-                              fg=ACC if running else MUT)
-
-    def _launch(self, args):
-        if self.proc:
-            self._log("Ya hay un proceso corriendo. Detenlo primero.")
-            return
-        flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
-        self.proc = subprocess.Popen(
-            _spawn_args(args), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            creationflags=flags)
-        threading.Thread(target=self._reader, args=(self.proc,), daemon=True).start()
-        self._set_running(True, " ".join(args))
-        self._log(f"> {' '.join(args)}")
-
-    # ------------------------------------------------------------ acciones
-    def start(self):
-        args = [self.mode.get()] + (["--real"] if self.real.get() else [])
-        self._launch(args)
-
-    def run_tool(self, args):
-        self._launch(args)
-
-    def stop(self):
-        if self.proc:
-            self.proc.kill()
-            self._log("[detenido]")
-            self.proc = None
-        self._set_running(False)
-
-    def save_settings(self):
-        path = C.APP_DIR / "settings.json"
-        data = {}
-        if path.exists():
-            try:
-                data = json.loads(path.read_text(encoding="utf-8"))
-            except Exception:
-                data = {}
-        for key, var in self.vars.items():
-            data[key] = round(float(var.get()), 6)
-        data["CAM_ROTATE"] = int(self.cam_rotate.get())
-        data["FLIP_HORIZONTAL"] = bool(self.cam_flip.get())
-        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
-        self._log(f"Ajustes guardados en {path.name}. "
-                  "Se aplican al (re)iniciar un modo.")
+        tk.Button(win, text="Guardar ajustes", font=FB, bg=ACC, fg="#07140d", bd=0,
+                  padx=14, pady=8, command=save).pack(pady=18)
 
     def on_close(self):
         self.stop()

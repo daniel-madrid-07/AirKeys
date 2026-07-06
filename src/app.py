@@ -113,59 +113,77 @@ class KeyboardRunner:
         pass
 
 
+class Engine:
+    """Procesa UN frame y devuelve (frame_anotado, texto_estado). Comparten esto el
+    modo consola (cv2.imshow) y la GUI (pinta el frame dentro de la ventana)."""
+
+    def __init__(self, mode, type_real=False):
+        assert mode in MODES, f"modo desconocido: {mode}"
+        self.mode = mode
+        self.tracker = HandTracker()
+        self.mouse = MouseRunner(type_real) if mode in ("mouse", "gaming") else None
+        self.keyboard = KeyboardRunner(type_real) if mode == "keyboard" else None
+        self.gaming = None
+        if mode == "gaming":
+            from src.gaming import KeyOut, HeldFingerKeys
+            self.gaming = HeldFingerKeys(KeyOut(type_real))
+
+    def process(self, frame, now=None):
+        now = time.perf_counter() if now is None else now
+        h = frame.shape[0]
+        feat, res = self.tracker.process(frame)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if self.mouse else None
+        draw(frame, res)
+
+        status = self.mode
+        if self.mouse:
+            info, ev = self.mouse.tick(frame, gray, res, now)
+            if info:
+                status = "PLANA (congelado)" if info["frozen"] else "raton"
+                if ev["left"]:
+                    status += " · IZQ"
+                if ev["right"]:
+                    status += " · DER"
+        if self.keyboard:
+            self.keyboard.tick(feat, now)
+            if self.keyboard.recent:
+                cv2.putText(frame, "".join(self.keyboard.recent), (12, h - 24),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
+        if self.gaming:
+            held = self.gaming.update(feat)
+            pressed = [self.gaming.keys[f] for f, d in held.items() if d]
+            if pressed:
+                cv2.putText(frame, " ".join(pressed).upper(), (12, h - 24),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 255), 2)
+
+        cv2.putText(frame, status, (12, 40), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.9, (0, 255, 0), 2)
+        return frame, status
+
+    def close(self):
+        if self.mouse:
+            self.mouse.close()
+        if self.keyboard:
+            self.keyboard.close()
+        if self.gaming:
+            self.gaming.close()
+        self.tracker.close()
+
+
 def run(mode, type_real=False):
-    assert mode in MODES, f"modo desconocido: {mode}"
-    tracker = HandTracker()
+    """Modo consola: bucle propio con ventana OpenCV. (La GUI usa Engine aparte.)"""
+    engine = Engine(mode, type_real)
     cap = open_camera()
-
-    mouse = MouseRunner(type_real) if mode in ("mouse", "gaming") else None
-    keyboard = None       # modo teclado completo (con modelo, teclea letras)
-    gaming_keys = None    # gaming: dedos-tecla mantenidas (sin modelo)
-    if mode == "keyboard":
-        keyboard = KeyboardRunner(type_real)
-    elif mode == "gaming":
-        from src.gaming import KeyOut, HeldFingerKeys
-        gaming_keys = HeldFingerKeys(KeyOut(type_real))
-
     title = f"AirKeys [{mode}]  ESC/q para salir"
     print(f"[APP] modo {mode} | type_real={type_real}")
     if not type_real:
-        print("[APP] MODO PRUEBA: no se envian teclas/clicks reales. Añade --real para control.")
-
+        print("[APP] MODO PRUEBA: no se envian teclas/clicks reales. Añade --real.")
     try:
         while True:
             ok, frame = cap.read()
             if not ok:
                 break
-            frame = orient(frame)
-            now = time.perf_counter()
-            feat, res = tracker.process(frame)
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if mouse else None
-            draw(frame, res)
-
-            status = mode
-            if mouse:
-                info, ev = mouse.tick(frame, gray, res, now)
-                if info:
-                    status = "PLANA" if info["frozen"] else "raton"
-                    if ev["left"]:
-                        status += " IZQ"
-                    if ev["right"]:
-                        status += " DER"
-            if keyboard:
-                keyboard.tick(feat, now)
-                if keyboard.recent:
-                    cv2.putText(frame, "".join(keyboard.recent), (12, C.FRAME_H - 24),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
-            if gaming_keys:
-                held = gaming_keys.update(feat)
-                pressed = [gaming_keys.keys[f] for f, d in held.items() if d]
-                if pressed:
-                    cv2.putText(frame, " ".join(pressed).upper(), (12, C.FRAME_H - 24),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 255), 2)
-
-            cv2.putText(frame, status, (12, 40), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.9, (0, 255, 0), 2)
+            frame, _ = engine.process(orient(frame))
             cv2.imshow(title, frame)
             k = cv2.waitKey(1) & 0xFF
             if k in (27, ord("q")):
@@ -175,12 +193,6 @@ def run(mode, type_real=False):
     except KeyboardInterrupt:
         pass
     finally:
-        if mouse:
-            mouse.close()
-        if keyboard:
-            keyboard.close()
-        if gaming_keys:
-            gaming_keys.close()
+        engine.close()
         cap.release()
         cv2.destroyAllWindows()
-        tracker.close()
