@@ -150,8 +150,8 @@
         <div class="chip" id="fpsChip"><span class="k">fps</span> <span id="fpsTxt">0</span></div>
       </div>
       <div class="ov ov-tr" id="meters" style="display:none">
-        <div class="meter">izq <div class="bar"><i id="mThumb"></i></div></div>
-        <div class="meter">der <div class="bar"><i id="mIdx"></i></div></div>
+        <div class="meter">izq (pulgar) <div class="bar"><i id="mThumb"></i></div> <b id="nThumb" style="color:#eaf0f6;width:34px;text-align:right">0</b></div>
+        <div class="meter">der (indice) <div class="bar"><i id="mIdx"></i></div> <b id="nIdx" style="color:#eaf0f6;width:34px;text-align:right">0</b></div>
         <div style="display:flex;gap:8px">
           <span class="btnpill l" id="pillL">IZQ</span>
           <span class="btnpill r" id="pillR">DER</span>
@@ -182,8 +182,8 @@
     <div class="row"><label>Zona muerta</label><input type="range" id="s_MOUSE_DEADZONE" min="0" max="0.003" step="0.0001"><span class="val" id="v_MOUSE_DEADZONE"></span></div>
     <div class="row"><label>Aceleracion</label><input type="range" id="s_MOUSE_ACCEL" min="0" max="3" step="0.1"><span class="val" id="v_MOUSE_ACCEL"></span></div>
     <div class="sect">Umbrales de clic</div>
-    <div class="row"><label>Clic izq (pulgar)</label><input type="range" id="s_MOUSE_THUMB_OPEN" min="0.4" max="1.6" step="0.02"><span class="val" id="v_MOUSE_THUMB_OPEN"></span></div>
-    <div class="row"><label>Clic der (indice)</label><input type="range" id="s_MOUSE_INDEX_EXTEND" min="0.5" max="0.98" step="0.02"><span class="val" id="v_MOUSE_INDEX_EXTEND"></span></div>
+    <div class="row"><label>Clic izq (pulgar)</label><input type="range" id="s_MOUSE_THUMB_OPEN" min="0.2" max="1.2" step="0.01"><span class="val" id="v_MOUSE_THUMB_OPEN"></span></div>
+    <div class="row"><label>Clic der (indice)</label><input type="range" id="s_MOUSE_INDEX_EXTEND" min="0.4" max="0.98" step="0.01"><span class="val" id="v_MOUSE_INDEX_EXTEND"></span></div>
     <div class="sect">Calibracion</div>
     <div class="tools">
       <button data-tool="calibrate-mouse">Calibrar raton</button>
@@ -250,8 +250,17 @@ $("#drawer").querySelectorAll("[data-tool]").forEach(b=>b.onclick=async()=>{
   setRunning(false); await api("/api/tool",{name:b.dataset.tool});
   $("#hint").textContent="Se abrio una ventana aparte para: "+b.textContent;
 });
-SETTINGS.forEach(k=>{const el=$("#s_"+k);if(el)el.oninput=()=>$("#v_"+k).textContent=(+el.value).toFixed(k==="MOUSE_DEADZONE"?4:2);});
-$("#s_FLIP_HORIZONTAL").onclick=e=>e.currentTarget.classList.toggle("on");
+let saveT;
+function liveSave(){clearTimeout(saveT);saveT=setTimeout(()=>{
+  const d={}; SETTINGS.forEach(k=>d[k]=+$("#s_"+k).value);
+  d.CAM_ROTATE=+$("#s_CAM_ROTATE").value;
+  d.FLIP_HORIZONTAL=$("#s_FLIP_HORIZONTAL").classList.contains("on");
+  api("/api/settings",d);   // aplica EN VIVO (y guarda)
+},120);}
+SETTINGS.forEach(k=>{const el=$("#s_"+k);if(el)el.oninput=()=>{
+  $("#v_"+k).textContent=(+el.value).toFixed(k==="MOUSE_DEADZONE"?4:2); liveSave();};});
+$("#s_CAM_ROTATE").onchange=liveSave;
+$("#s_FLIP_HORIZONTAL").onclick=e=>{e.currentTarget.classList.toggle("on");liveSave();};
 $("#save").onclick=async()=>{
   const d={};
   SETTINGS.forEach(k=>d[k]=+$("#s_"+k).value);
@@ -281,8 +290,10 @@ setInterval(async()=>{
   $("#statTxt").textContent=i.frozen?"congelado":(MODES[mode].label.replace("Modo ",""));
   $("#statChip").classList.toggle("hot",!!i.frozen);
   if(mode==="mouse"){
-    $("#mThumb").style.width=Math.min(100,(i.thumb/1.6)*100)+"%";
+    $("#mThumb").style.width=Math.min(100,(i.thumb/1.0)*100)+"%";
     $("#mIdx").style.width=Math.min(100,(i.idx)*100)+"%";
+    $("#nThumb").textContent=(+i.thumb).toFixed(2);
+    $("#nIdx").textContent=(+i.idx).toFixed(2);
     $("#pillL").classList.toggle("on",!!i.left);
     $("#pillR").classList.toggle("on",!!i.right);
   }

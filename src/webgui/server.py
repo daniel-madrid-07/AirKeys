@@ -160,6 +160,25 @@ def api_tool():
     return jsonify(ok=True)
 
 
+def _apply_live(data):
+    """Aplica ajustes al modulo config EN CALIENTE. Como los subsistemas leen
+    C.LO_QUE_SEA en cada frame, el cambio surte efecto al instante, sin reiniciar."""
+    for k, v in data.items():
+        if not hasattr(C, k):
+            continue
+        cur = getattr(C, k)
+        try:
+            if isinstance(cur, bool):
+                v = bool(v)
+            elif isinstance(cur, int):
+                v = int(v)
+            elif isinstance(cur, float):
+                v = float(v)
+        except (TypeError, ValueError):
+            pass
+        setattr(C, k, v)
+
+
 @app.route("/api/settings", methods=["GET", "POST"])
 def api_settings():
     path = C.APP_DIR / "settings.json"
@@ -170,7 +189,9 @@ def api_settings():
         except Exception:
             cur = {}
     if request.method == "POST":
-        cur.update(request.get_json(force=True))
+        data = request.get_json(force=True)
+        _apply_live(data)                       # efecto inmediato
+        cur.update(data)
         path.write_text(json.dumps(cur, indent=2), encoding="utf-8")
         return jsonify(ok=True)
     return jsonify({k: cur.get(k, getattr(C, k)) for k in SETTING_KEYS})
