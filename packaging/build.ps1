@@ -28,11 +28,13 @@ Write-Host "== Empaquetando (esto tarda) ==" -ForegroundColor Cyan
     --collect-submodules mediapipe `
     --collect-submodules comtypes `
     --hidden-import pygrabber.dshow_graph `
+    --icon "packaging\icon.ico" `
     --exclude-module tensorflow `
     --add-data "models/hand_landmarker.task;models" `
     --add-data "settings.example.json;." `
     --add-data "GUIDE.md;." `
     --add-data "src/webgui/static;src/webgui/static" `
+    --add-data "packaging/icon.ico;packaging" `
     airkeys.py
 
 if (-not (Test-Path "dist\AirKeys\AirKeys.exe")) {

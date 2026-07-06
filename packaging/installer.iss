@@ -20,6 +20,7 @@ SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
 WizardStyle=modern
+SetupIconFile=icon.ico
 
 [Languages]
 Name: "es"; MessagesFile: "compiler:Languages\Spanish.isl"

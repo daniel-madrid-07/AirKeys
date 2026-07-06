@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/logo.png" alt="AirKeys logo" width="160">
+
 # AirKeys
 
 **Turn a webcam into an invisible mouse and keyboard.**
