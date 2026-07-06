@@ -31,8 +31,8 @@ Everything runs locally. No internet, no accounts, no telemetry.
 
 > **Windows only** (uses Win32 APIs, DirectShow and WebView2).
 
-### Option A — Portable build
-Download the latest `AirKeys-*-win64.zip` from [Releases](../../releases), extract it anywhere and run `AirKeys.exe`.
+### Option A — Installer
+Download `AirKeys-*-Setup.exe` from [Releases](../../releases) and follow the wizard (per-user, no admin). A portable `AirKeys-*-win64.zip` is also available: extract and run `AirKeys.exe`.
 
 ### Option B — From source
 Python 3.11–3.13.
