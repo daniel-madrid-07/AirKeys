@@ -51,6 +51,13 @@ class KeyboardRunner:
     """Detecta taps y teclea. hand_filter='Left'/'Right' limita a una mano (gaming)."""
 
     def __init__(self, type_real, hand_filter=None):
+        try:
+            import torch  # noqa: F401
+        except ImportError:
+            raise RuntimeError(
+                "El modo teclado necesita PyTorch, que no viene en el ejecutable.\n"
+                "Usa la instalacion desde codigo (install.bat) para el teclado.\n"
+                "El raton y el gaming funcionan sin torch.")
         from src.model import load_fingers
         from src.tap import TapDetector
         from src.fingers import _hand_slot

@@ -15,7 +15,21 @@ Write-Host "== Limpiando build anterior ==" -ForegroundColor Cyan
 Remove-Item -Recurse -Force build, dist -ErrorAction SilentlyContinue
 
 Write-Host "== Empaquetando (esto tarda) ==" -ForegroundColor Cyan
-& $py -m PyInstaller --noconfirm --clean packaging\airkeys.spec
+# --collect-all torch fuerza TODOS sus binarios (_C, DLLs) -> los 3 modos en el exe.
+# NO se excluye mediapipe.genai (su __init__ lo importa); genai.converter es lazy
+# (jax/sentencepiece solo para conversion LLM, que no usamos).
+# NO --windowed (PyInstaller 6.21 pierde binarios); la GUI oculta su consola sola.
+& $py -m PyInstaller --noconfirm --onedir --name AirKeys `
+    --collect-all torch `
+    --collect-data mediapipe `
+    --collect-submodules mediapipe `
+    --collect-submodules comtypes `
+    --hidden-import pygrabber.dshow_graph `
+    --exclude-module tensorflow `
+    --add-data "models/hand_landmarker.task;models" `
+    --add-data "settings.example.json;." `
+    --add-data "GUIDE.md;." `
+    airkeys.py
 
 if (-not (Test-Path "dist\AirKeys\AirKeys.exe")) {
     Write-Error "No se genero el ejecutable."

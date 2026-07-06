@@ -13,9 +13,13 @@ def main():
     args = ap.parse_args()
 
     print(f"python {sys.version.split()[0]}")
-    import numpy, cv2, torch, mediapipe, pynput
-    print(f"numpy {numpy.__version__}  opencv {cv2.__version__}  torch {torch.__version__}")
-    print(f"mediapipe {mediapipe.__version__}  cuda={torch.cuda.is_available()}")
+    import numpy, cv2, mediapipe, pynput
+    print(f"numpy {numpy.__version__}  opencv {cv2.__version__}  mediapipe {mediapipe.__version__}")
+    try:
+        import torch
+        print(f"torch {torch.__version__}  (modo teclado disponible)")
+    except ImportError:
+        print("torch NO instalado -> raton y gaming OK; el modo teclado no.")
 
     import config as C
     from src.hand_tracker import HandTracker

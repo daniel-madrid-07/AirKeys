@@ -113,8 +113,26 @@ def main():
     elif args.command:
         _dispatch(args.command, args.real)
     else:
+        _hide_own_console()                    # doble clic -> sin consola detras
         from src.gui import main as gui_main   # sin argumentos -> aplicacion
         gui_main()
+
+
+def _hide_own_console():
+    """Oculta la consola SOLO si es nuestra (doble clic en el exe). Si se lanzo
+    desde un terminal del usuario, no se toca."""
+    try:
+        import ctypes
+        k32 = ctypes.windll.kernel32
+        h = k32.GetConsoleWindow()
+        if not h:
+            return
+        pids = (ctypes.c_uint * 4)()
+        n = k32.GetConsoleProcessList(pids, 4)
+        if n <= 2:                             # solo nosotros (y quiza conhost)
+            ctypes.windll.user32.ShowWindow(h, 0)
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
