@@ -32,7 +32,7 @@ Every version, with release notes, on the [Releases page](../../releases).
 
 - **MediaPipe HandLandmarker** tracks 21 3D landmarks per hand (at half resolution for speed).
 - **Mouse = optical flow.** The camera works like a giant optical mouse sensor: ~100 skin-texture points are tracked with sub-pixel Lucas–Kanade, the median of their motion drives the cursor — relative, stable and precise, with pointer acceleration and a flat-hand clutch.
-- **Keyboard = tap detector + per-finger model.** A geometric detector decides *when* and *which finger* taps; a small GRU per finger (seeing only its own landmarks) decides *which key*. Training data is recorded with a metronome-guided recorder — no physical keyboard, no domain gap. Inspired by *Typing on Any Surface* (arXiv:2309.00174).
+- **Keyboard = home-row calibration + velocity-reversal strikes.** Press depth can't be seen by a single camera (the motion runs along the optical axis), so AirKeys avoids depth entirely: resting your hands on the desk calibrates the surface *appearance* per finger (the trick Meta's Quest surface keyboard uses), a keystroke is detected by its temporal signature — fast finger drop, hard stop, lift — and the key is decoded geometrically from where the fingertip landed on the QWERTY grid anchored to your home position. Each finger only competes for its own touch-typing columns; thumbs are space. Works untrained; an optional per-finger GRU model (metronome-guided recorder, inspired by *Typing on Any Surface*, arXiv:2309.00174) can replace the geometric decoder (`KB_DECODER`).
 
 Everything runs locally. No internet, no accounts, no telemetry.
 
@@ -42,7 +42,7 @@ Everything runs locally. No internet, no accounts, no telemetry.
 |------|--------------|-----------------|
 | **Mouse** | Fist moves the cursor · open **thumb** = left click · extend **index** = right click · **flat hand** = freeze | No |
 | **Gaming** | Right hand = mouse. Left hand = held keys (finger down = key held, WASD/Shift/Space) | No |
-| **Keyboard** | Type letters on an empty desk *(experimental)* | Yes |
+| **Keyboard** | Type letters on an empty desk *(experimental)* | No — geometric decoder; training optional |
 
 ## Install
 
@@ -94,7 +94,8 @@ src/hand_tracker.py   MediaPipe -> landmarks + feature vector
 src/flow_sensor.py    optical-flow motion sensor (mouse movement)
 src/mouse_control.py  relative mouse, clutch, finger clicks
 src/gaming.py         held finger-keys (no model)
-src/tap.py            tap detection (keyboard)
+src/keyboard_geo.py   untrained keyboard: home calibration + strike + QWERTY grid
+src/tap.py            tap detection (gaming / trained model)
 src/fingers.py        key -> finger mapping
 src/model.py          per-finger expert model
 src/train.py          training
@@ -110,6 +111,7 @@ Smoke tests (no camera needed):
 python -m tools.smoke_flow
 python -m tools.smoke_tap
 python -m tools.smoke_fingers
+python -m tools.smoke_geo
 ```
 
 Build the executable:
@@ -120,7 +122,7 @@ powershell -ExecutionPolicy Bypass -File packaging\build.ps1
 
 ## Beta status
 
-Mouse and Gaming work out of the box. The full Keyboard mode is research-grade: accuracy depends heavily on camera placement and how much data you record. Expect rough edges — issues and PRs welcome.
+Mouse and Gaming work out of the box. Keyboard mode now works untrained (geometric decoder) but is still experimental: type slowly and deliberately, and expect it to be sensitive to camera placement. Expect rough edges — issues and PRs welcome.
 
 ## License
 

@@ -70,18 +70,32 @@ No training needed.
 
 ## 5. Full KEYBOARD mode (typing letters)
 
-The hard one. Types letters on an empty desk. **Needs training** with your own
-data (everyone types differently).
+Types letters on an empty desk. **No training needed** (default geometric decoder):
 
-1. Camera at ~45° (see above).
-2. **Record keyboard** (Settings → tools): follow the metronome, tap each shown
-   letter in the air. Do several sessions (more data = better).
-3. **Calibrate tap**: copy the suggested thresholds into `settings.json`.
-4. **Train keyboard**.
-5. Start **Keyboard** mode: test first, then real control.
+1. Camera elevated at ~45-60° in front-above (see section 1).
+2. Start **Keyboard** mode.
+3. **Calibrate**: rest both hands on the desk in home position (ASDF / JKL;) and
+   hold still for ~1 second. The status hint switches to "calibrated".
+4. Type **slowly and deliberately**: lift the finger and strike down on the
+   imaginary key. Thumbs = space. Each finger only types its own touch-typing
+   columns (index right = Y U H J N M, etc.).
+5. Resting both hands again recalibrates at any time (do it whenever you move
+   your hands or the camera).
 
-> Realistic expectations: keyboard mode is research-grade. Accuracy depends on
-> camera placement and how much data you record. Mouse and Gaming work untrained.
+How it works: press depth is invisible to a single camera, so AirKeys never
+measures it. Resting hands = touching the desk, which anchors the surface
+appearance per finger; a keystroke is its temporal signature (fast drop, hard
+stop, lift); the key comes from where the fingertip landed on a QWERTY grid
+anchored to your calibrated home position and scaled by your own finger spacing.
+
+Tuning (settings.json): `KB_VEL_ENTER` (strike sensitivity: lower = easier to
+trigger), `KB_MIN_DROP` (minimum finger travel), `KB_ROW_SCALE` (vertical
+distance between rows as seen by your camera), `KB_MAX_KEY_DIST` (how far from
+a key center still counts).
+
+**Optional trained model** (the previous pipeline, for tinkerers): record with
+the metronome (`Record keyboard`), `Calibrate tap`, `Train keyboard`, and set
+`"KB_DECODER": "model"` in settings.json.
 
 ---
 
@@ -108,8 +122,10 @@ The UI edits the common ones live.
 - **Left click misfires / won't fire**: watch the *thumb* meter while opening your
   thumb and set the left-click threshold just below its peak. Right click: same
   with the *index* meter.
-- **Keyboard types nothing**: almost always the camera (can't see the vertical
-  strike) or too little data. Camera at ~45° and record more.
+- **Keyboard types nothing**: check the hint says "calibrated" (rest both hands
+  still on the desk first), strike faster/more vertically, or lower `KB_VEL_ENTER`.
+- **Keyboard types too much / wrong keys**: raise `KB_VEL_ENTER` or `KB_MIN_DROP`;
+  type slower; adjust `KB_ROW_SCALE` if top/bottom rows get confused.
 - **Left/right hands swapped**: set `"SWAP_HANDS": true`.
 - **Camera paused ("click to resume")**: an external tool took the camera; close
   it and click the video area.

@@ -105,7 +105,22 @@ TAP_BASELINE_ALPHA = 0.12 # suavizado del nivel de reposo (hover)
 # (s cayo por debajo del reposo en TAP_LIFT). Evita que dedos quietos/bajos repitan.
 TAP_LIFT = 0.18
 
-# --- Inferencia ---
+# --- Teclado GEOMETRICO (por defecto, SIN entrenar) ---
+# Ver src/keyboard_geo.py: calibracion home-row (manos quietas en la mesa) +
+# strike por reversion de velocidad + tecla por posicion en la rejilla QWERTY.
+KB_DECODER = "geo"        # "geo" (sin modelo, por defecto) | "model" (GRU entrenado)
+                          # | "auto" (model si existe models/fingers.pt, si no geo)
+KB_VEL_ENTER = 0.9        # velocidad de bajada de s (1/seg) que arma un strike
+KB_MIN_DROP = 0.08        # excursion minima de s en la bajada (tamaños de mano)
+KB_STRIKE_MAX_S = 0.35    # una bajada mas larga que esto no es un tap
+KB_REFRACTORY_S = 0.18    # tiempo minimo entre strikes del mismo dedo
+KB_STILL_EPS = 0.35       # |v| por debajo = dedo/mano quietos (para calibrar)
+KB_CALIB_STILL_S = 0.8    # segundos quieto para (re)calibrar el reposo
+KB_WRIST_MAX_V = 0.8      # velocidad de muñeca por encima = recolocacion, no tecla
+KB_ROW_SCALE = 0.85       # separacion vertical entre filas, relativa al pitch
+KB_MAX_KEY_DIST = 0.75    # distancia maxima a una tecla (en pitch) para aceptarla
+
+# --- Inferencia (modo con modelo entrenado) ---
 KEY_CONF_MIN = 0.30  # confianza minima del experto para aceptar la tecla de un tap
 DEBOUNCE_S = 0.12    # tiempo minimo entre dos emisiones de la misma tecla
 

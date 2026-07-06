@@ -463,8 +463,10 @@ const I18N = {
     save:"save settings", standby:"STANDBY", running:"TRACKING", frozen:"frozen",
     saved:"Settings saved. They apply live.", toolOpen:"A separate window opened for: ",
     hMouse:"FIST moves · open THUMB = left click · extend INDEX = right click · FLAT hand = freeze",
-    hKb:"type letters in the air (requires record + train)",
+    hKb:"type on the empty desk — no training needed (or train your own model)",
     hGame:"right hand = mouse · left hand = held keys",
+    kbCal:"rest both hands on the desk in home position (ASDF · JKL) and hold still…",
+    kbReady:"calibrated — type slowly, thumbs = space · resting your hands recalibrates",
     modeNames:{mouse:"mouse", keyboard:"keyboard", gaming:"kb + mouse"},
   },
   es:{
@@ -485,8 +487,10 @@ const I18N = {
     save:"guardar ajustes", standby:"EN REPOSO", running:"RASTREANDO", frozen:"congelado",
     saved:"Ajustes guardados. Se aplican en vivo.", toolOpen:"Se abrió una ventana aparte para: ",
     hMouse:"PUÑO mueve · abre el PULGAR = clic izq · estira el ÍNDICE = clic der · mano PLANA = congela",
-    hKb:"escribe letras en el aire (requiere grabar y entrenar)",
+    hKb:"escribe sobre la mesa vacía — sin entrenar (o entrena tu propio modelo)",
     hGame:"mano derecha = ratón · mano izquierda = teclas mantenidas",
+    kbCal:"apoya las dos manos en la mesa en posición home (ASDF · JKLÑ) y quédate quieto…",
+    kbReady:"calibrado — escribe despacio, pulgares = espacio · apoyar las manos recalibra",
     modeNames:{mouse:"ratón", keyboard:"teclado", gaming:"tec + ratón"},
   }
 };
@@ -674,6 +678,7 @@ setInterval(async()=>{
     $("#gFlat").classList.toggle("icy",frz);
     $("#gFist").classList.toggle("hot",!frz&&!i.left&&!i.right);
   }
+  if(mode==="keyboard"&&i.kb)setHint(i.kb==="calibrating"?t("kbCal"):t("kbReady"));
   if(i.keys){$("#keys").style.display="inline-block";$("#keys").textContent=i.keys;}
   else $("#keys").style.display="none";
 },180);

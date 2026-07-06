@@ -47,8 +47,43 @@ class MouseRunner:
         self.out.release_all()
 
 
+class GeoKeyboardRunner:
+    """Teclado geometrico SIN modelo (src/keyboard_geo.py): calibracion home-row +
+    strikes por velocidad + tecla por posicion. Funciona sin entrenar."""
+
+    def __init__(self, type_real):
+        from src.keyboard_geo import GeoKeyboard
+        self.geo = GeoKeyboard()
+        self.recent = deque(maxlen=16)
+        self.last = {}
+        self.kb = None
+        if type_real:
+            from pynput.keyboard import Controller
+            self.kb = Controller()
+
+    @property
+    def state(self):
+        return "ready" if self.geo.calibrated else "calibrating"
+
+    def tick(self, feat, now):
+        for key in self.geo.update(feat, now):
+            if now - self.last.get(key, -1e9) < C.DEBOUNCE_S:
+                continue
+            self.last[key] = now
+            ch = " " if key == "space" else key
+            self.recent.append(ch)
+            if self.kb:
+                self.kb.type(ch)
+
+    def close(self):
+        pass
+
+
 class KeyboardRunner:
-    """Detecta taps y teclea. hand_filter='Left'/'Right' limita a una mano (gaming)."""
+    """Teclado con MODELO entrenado (taps + experto por dedo).
+    hand_filter='Left'/'Right' limita a una mano (gaming)."""
+
+    state = "ready"
 
     def __init__(self, type_real, hand_filter=None):
         try:
@@ -122,11 +157,26 @@ class Engine:
         self.mode = mode
         self.tracker = HandTracker()
         self.mouse = MouseRunner(type_real) if mode in ("mouse", "gaming") else None
-        self.keyboard = KeyboardRunner(type_real) if mode == "keyboard" else None
+        self.keyboard = self._make_keyboard(type_real) if mode == "keyboard" else None
         self.gaming = None
         if mode == "gaming":
             from src.gaming import KeyOut, HeldFingerKeys
             self.gaming = HeldFingerKeys(KeyOut(type_real))
+
+    @staticmethod
+    def _make_keyboard(type_real):
+        """Elige el decodificador de teclado segun KB_DECODER:
+        geo (sin entrenar, por defecto) o model (GRU entrenado)."""
+        dec = getattr(C, "KB_DECODER", "auto")
+        model_path = C.MODEL_DIR / "fingers.pt"
+        if dec == "model" or (dec == "auto" and model_path.exists()):
+            try:
+                return KeyboardRunner(type_real)
+            except (RuntimeError, FileNotFoundError) as e:
+                if dec == "model":
+                    raise
+                print(f"[KB] modelo no disponible ({e}); uso el decodificador geometrico.")
+        return GeoKeyboardRunner(type_real)
 
     def process(self, frame, now=None):
         """Devuelve (frame_con_landmarks, info). info es un dict con el estado para
@@ -150,6 +200,7 @@ class Engine:
         if self.keyboard:
             self.keyboard.tick(feat, now)
             info["keys"] = "".join(self.keyboard.recent)
+            info["kb"] = self.keyboard.state
         if self.gaming:
             held = self.gaming.update(feat)
             info["keys"] = " ".join(self.gaming.keys[f] for f, d in held.items() if d).upper()
