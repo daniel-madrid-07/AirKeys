@@ -1,112 +1,110 @@
+<div align="center">
+
 # AirKeys
 
-**Ratón y teclado invisibles con una sola webcam.** Mueve el cursor y haz clic con la
-mano en el aire, aguanta teclas para gaming, o escribe letras sobre una mesa vacía.
+**Turn a webcam into an invisible mouse and keyboard.**
+Your hand in the air *is* the device — no hardware, no gloves, fully offline.
 
-Sin hardware especial: una webcam, MediaPipe para la mano y un motor de **flujo
-óptico** (la cámara como el sensor de un ratón óptico gigante) para un movimiento
-sub-píxel y estable.
+*Move the cursor with your fist, click by opening your thumb, hold keys for gaming, or type letters on an empty desk.*
 
-> ⚠️ Windows. Ratón y Gaming funcionan sin entrenar. El Teclado completo (escribir
-> letras) es experimental y requiere grabar tus datos.
+</div>
 
 ---
 
-## Modos
+## How it works
 
-| Modo | Qué hace | ¿Entrena? |
-|------|----------|-----------|
-| **Ratón** | Puño mueve el cursor; levantar índice = clic izq; sacar corazón = clic der; mano plana = congelar. | No |
-| **Gaming** | Mano derecha = ratón. Mano izquierda = teclas mantenidas (dedo abajo = tecla apretada, WASD/Shift/Espacio). | No |
-| **Teclado** | Escribir letras tocando una mesa invisible. | Sí |
+- **MediaPipe HandLandmarker** tracks 21 3D landmarks per hand (at half resolution for speed).
+- **Mouse = optical flow.** The camera works like a giant optical mouse sensor: ~100 skin-texture points are tracked with sub-pixel Lucas–Kanade, the median of their motion drives the cursor — relative, stable and precise, with pointer acceleration and a flat-hand clutch.
+- **Keyboard = tap detector + per-finger model.** A geometric detector decides *when* and *which finger* taps; a small GRU per finger (seeing only its own landmarks) decides *which key*. Training data is recorded with a metronome-guided recorder — no physical keyboard, no domain gap. Inspired by *Typing on Any Surface* (arXiv:2309.00174).
 
----
+Everything runs locally. No internet, no accounts, no telemetry.
 
-## Instalación
+## Modes
 
-### Opción A — Ejecutable (recomendada)
-Descarga el instalador de [Releases](../../releases), instálalo y abre **AirKeys**.
+| Mode | What it does | Training needed |
+|------|--------------|-----------------|
+| **Mouse** | Fist moves the cursor · open **thumb** = left click · extend **index** = right click · **flat hand** = freeze | No |
+| **Gaming** | Right hand = mouse. Left hand = held keys (finger down = key held, WASD/Shift/Space) | No |
+| **Keyboard** | Type letters on an empty desk *(experimental)* | Yes |
 
-### Opción B — Desde código
-Necesitas Python 3.11–3.13.
-```bash
-git clone <este-repo>
+## Install
+
+> **Windows only** (uses Win32 APIs, DirectShow and WebView2).
+
+### Option A — Installer
+Download the latest setup from [Releases](../../releases) and run it.
+
+### Option B — From source
+Python 3.11–3.13.
+
+```bat
+git clone https://github.com/daniel-madrid-07/AirKeys
 cd AirKeys
-install.bat            # crea el entorno e instala dependencias
+install.bat
+run.bat
 ```
-Arranca con `Iniciar AirKeys.bat` o `python airkeys.py`.
 
----
+A window opens with the live camera view, gesture legend and telemetry. Pick a mode, press **Start**. Enable **Real control** only when you trust the tracking. The UI is in English with a Spanish option in Settings.
 
-## Uso rápido
+CLI equivalents:
 
-```bash
-python airkeys.py            # menú interactivo
-python airkeys.py mouse      # ratón (prueba, no controla)
+```bat
+python airkeys.py              :: window UI
+python airkeys.py menu         :: terminal menu
+python airkeys.py mouse        :: mouse mode (test, does not control)
 python airkeys.py mouse --real
 python airkeys.py gaming --real
-python airkeys.py check      # comprobar cámara
+python airkeys.py check        :: verify camera + environment
 ```
 
-**Coloca bien la cámara** (lo que más importa): de lado para solo-ratón; **elevada a
-~45° delante-arriba** para teclado y gaming. Detalles y calibración en **[GUIDE.md](GUIDE.md)**.
+## Camera placement
 
----
+The single most important factor. A webcam on an arm/tripod, **elevated in front of you at ~45–60° looking down** at your hands covers all three modes. See **[GUIDE.md](GUIDE.md)** for placement, calibration and troubleshooting.
 
-## Cómo funciona
+If the image comes out rotated or mirrored, fix it live in **Settings → Camera** (rotate / mirror / camera picker).
 
-1. **MediaPipe HandLandmarker** da 21 puntos 3D por mano (procesados a media
-   resolución para ir rápido).
-2. **Ratón = flujo óptico**: se rastrea la textura de la piel de la mano (Lucas-Kanade
-   sub-píxel, mediana de ~100 puntos con máscara de silueta) → movimiento relativo,
-   preciso y estable, con aceleración de puntero y clutch por mano plana. Los gestos de
-   clic salen de la extensión/elevación de los dedos.
-3. **Teclado = tap + modelo por dedo**: un detector geométrico decide *cuándo* y *qué
-   dedo* pulsa; un pequeño GRU por dedo (que solo ve los landmarks de ese dedo) decide
-   *qué tecla*. Etiquetado sin teclado físico con un grabador guiado por metrónomo
-   (evita el *domain gap*). Inspirado en *Typing on Any Surface* (arXiv:2309.00174).
+## Settings
 
----
+Everything in `config.py` can be overridden without touching code: copy `settings.example.json` to `settings.json` next to the app. The UI edits the important ones live (sensitivity, smoothing, dead zone, acceleration, click thresholds, camera).
 
-## Ajustes
-
-Copia `settings.example.json` a `settings.json` y sobreescribe cualquier parámetro
-(sensibilidad, mano, cámara, umbrales…). Ver [GUIDE.md](GUIDE.md).
-
----
-
-## Desarrollo
+## Project layout
 
 ```
-airkeys.py            punto de entrada (menu + comandos)
-config.py             parametros (+ overrides por settings.json)
-src/app.py            motor unificado (3 modos, un bucle de camara)
-src/hand_tracker.py   MediaPipe -> landmarks + features
-src/flow_sensor.py    flujo optico (movimiento del raton)
-src/mouse_control.py  raton relativo, clutch, clicks por dedo
-src/gaming.py         teclas mantenidas por dedo (gaming, sin modelo)
-src/tap.py            deteccion de pulsacion (teclado)
-src/fingers.py        mapeo tecla->dedo
-src/model.py          modelo multi-experto por dedo
-src/train.py          entrenamiento
-src/record_air.py     grabador guiado (metronomo)
-tools/                calibracion, comprobaciones y smoke tests
-packaging/            PyInstaller spec, build script, instalador
+airkeys.py            entry point (window UI, terminal menu, commands)
+config.py             all parameters (+ settings.json overrides)
+src/app.py            unified engine (3 modes, one camera loop)
+src/hand_tracker.py   MediaPipe -> landmarks + feature vector
+src/flow_sensor.py    optical-flow motion sensor (mouse movement)
+src/mouse_control.py  relative mouse, clutch, finger clicks
+src/gaming.py         held finger-keys (no model)
+src/tap.py            tap detection (keyboard)
+src/fingers.py        key -> finger mapping
+src/model.py          per-finger expert model
+src/train.py          training
+src/record_air.py     metronome-guided recorder
+src/webgui/           local Flask server + WebView2 UI (single index.html)
+tools/                calibration, camera probe, smoke tests
+packaging/            PyInstaller build + Inno Setup installer
 ```
 
-Pruebas sin cámara:
-```bash
-python -m tools.smoke_flow      # flujo optico
-python -m tools.smoke_tap       # deteccion de tap
-python -m tools.smoke_fingers   # modelo por dedo
+Smoke tests (no camera needed):
+
+```bat
+python -m tools.smoke_flow
+python -m tools.smoke_tap
+python -m tools.smoke_fingers
 ```
 
-Empaquetar el .exe:
+Build the executable:
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File packaging\build.ps1
 ```
 
----
+## Beta status
 
-## Licencia
-MIT — ver [LICENSE](LICENSE).
+Mouse and Gaming work out of the box. The full Keyboard mode is research-grade: accuracy depends heavily on camera placement and how much data you record. Expect rough edges — issues and PRs welcome.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

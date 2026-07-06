@@ -65,8 +65,8 @@ class KeyboardRunner:
         if not model_path.exists():
             raise FileNotFoundError(
                 "No hay modelo de teclado (models/fingers.pt). Graba y entrena:\n"
-                "  python -m src.record_air --name aire01\n"
-                "  python -m src.train")
+                "  python airkeys.py record\n"
+                "  python airkeys.py train")
         self.model, self.classes = load_fingers(model_path)
         self.sf2e = {}
         for i, m in enumerate(self.model.experts_meta):

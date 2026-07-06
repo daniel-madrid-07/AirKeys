@@ -110,21 +110,12 @@ def main():
     args = ap.parse_args()
     if args.command == "menu":
         _menu()
-    elif args.command == "classic":
-        _hide_own_console()
-        from src.gui import main as gui_main   # GUI tkinter (respaldo)
-        gui_main()
     elif args.command:
         _dispatch(args.command, args.real)
     else:
         _hide_own_console()                    # doble clic -> sin consola detras
-        try:
-            from src.webgui.server import main as web_main   # UI web (WebView2)
-            web_main()
-        except Exception as e:                 # sin WebView2 -> GUI clasica
-            print(f"[APP] UI web no disponible ({e}); uso la clasica.")
-            from src.gui import main as gui_main
-            gui_main()
+        from src.webgui.server import main as web_main   # UI (WebView2 o navegador)
+        web_main()
 
 
 def _hide_own_console():

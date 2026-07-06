@@ -1,108 +1,115 @@
-# Guía de AirKeys
+# AirKeys Guide
 
-Ratón y teclado invisibles con una webcam. Tres modos: **Ratón**, **Teclado**, **Gaming**.
-
----
-
-## 1. Coloca la cámara
-
-La posición de la cámara es lo que más afecta a la precisión.
-
-| Modo | Mejor posición de cámara |
-|------|--------------------------|
-| **Solo ratón** | De lado / baja, mirando la mano a través de la mesa. Muy cómodo. |
-| **Teclado** | **Elevada y en ángulo (~45–60°)**, delante-arriba mirando las manos. Así ve el golpe vertical del dedo *y* la posición de cada tecla. |
-| **Gaming** (ratón+teclado) | La misma de ~45° delante-arriba: sirve para las dos. |
-
-> Recomendación general: una webcam en un brazo/tripode **elevada y mirando abajo en ángulo (~45–60°)** sobre la mesa, delante-arriba de tus manos, cubre los tres modos. Es el punto óptimo: ve el golpe vertical del dedo (teclado/clics) y el plano (ratón). Perfectamente vertical (90°) NO es lo ideal: pierde el gesto vertical.
-
-**Orientación (montaje cenital/arriba).** Al montar la cámara arriba suele quedar girada. Ajusta en **Ajustes → o en `settings.json`**:
-- `CAM_ROTATE`: `0` / `90` / `180` / `270`. Cámbialo hasta que tus manos salgan naturales, **dedos hacia arriba de la imagen** e izquierda a la izquierda.
-- `FLIP_HORIZONTAL`: `true`/`false` si izquierda y derecha salen cambiadas.
-- Marca `CAM_VIEW` = `"overhead"` (informativo).
-
-**Importante:** deja `CAM_ROTATE`/`FLIP_HORIZONTAL` fijos y **recalibra** (ratón y tap) en esa posición. Deben ser iguales al calibrar, grabar y usar.
-
-Buena luz y fondo de mesa mate ayudan.
+Invisible mouse and keyboard with one webcam. Three modes: **Mouse**, **Gaming**, **Keyboard**.
 
 ---
 
-## 2. Arranca
+## 1. Place the camera
 
-- **Instalado (.exe)**: abre **AirKeys** desde el menú Inicio o el escritorio.
-- **Desde código**: doble clic en `Iniciar AirKeys.bat`, o `python airkeys.py`.
+Camera placement is what affects accuracy the most.
 
-Verás un menú. Empieza por **8) Comprobar cámara** para confirmar que se ve tu webcam.
+| Mode | Best camera position |
+|------|----------------------|
+| **Mouse only** | Sideways / low, looking at your hand across the desk. Very comfortable. |
+| **Keyboard** | **Elevated at ~45–60°**, in front and above, looking down at your hands. It sees the vertical finger strike *and* where each key is. |
+| **Gaming** (mouse+keys) | The same ~45° front-above spot works for both hands. |
 
-> Cada modo abre primero en **MODO PRUEBA** (no controla el ratón/teclado de verdad).
-> Cuando te fíes, elige control **REAL**.
+> General recommendation: a webcam on an arm/tripod **elevated, angled ~45–60° down** over the desk, in front-above your hands, covers all three modes. Perfectly vertical (90°) is NOT ideal: it loses the vertical strike.
 
----
+**Orientation.** An overhead-mounted camera usually comes out rotated. Fix it live in **Settings → Camera**:
+- **Rotate image**: 0 / 90 / 180 / 270 — until your hands look natural (fingers pointing up, left on the left).
+- **Mirror horizontally**: if left/right are swapped.
+- **Camera**: pick the right webcam if you have several (DroidCam, OBS, etc.).
 
-## 3. Modo RATÓN
+**Important:** keep rotation/mirror fixed and **recalibrate** (mouse and tap) in that position. They must match between calibrating, recording and using.
 
-1. Menú → **4) Calibrar ratón**: haz dos gestos cuando te los pida (mano a la
-   **derecha**, luego mano **alante**). ~8 segundos. Solo una vez por posición de cámara.
-2. Menú → **1) Ratón** (cámara CENITAL, posición normal = **puño**). Gestos:
-   - **Puño** y mover la mano → mueve el cursor (relativo).
-   - **Abrir/alejar el pulgar** de la mano → clic **izquierdo** mantenido.
-   - **Estirar el índice** → clic **derecho** mantenido.
-   - **Mano plana** (todos los dedos rectos) → congela el cursor (recolocar sin mover).
-
-Sensación (en `settings.json`): `MOUSE_GAIN` (sensibilidad), `MOUSE_SMOOTH`
-(suavizado), `MOUSE_DEADZONE` (tembleque en reposo).
+Good light and a matte desk surface help.
 
 ---
 
-## 4. Modo GAMING (ratón + teclado, sin entrenar)
+## 2. Start
 
-- **Mano derecha** = ratón (igual que arriba).
-- **Mano izquierda** = teclas mantenidas. Cada dedo es una tecla; **bajar el dedo**
-  la aprieta y se mantiene mientras siga abajo (como aguantar W para correr).
-- Mapeo por defecto (`GAMING_KEYS` en settings.json):
-  meñique=Shift, anular=A, corazón=W, índice=D, pulgar=Espacio.
+- **Installed (.exe)**: open **AirKeys** from the Start menu or desktop.
+- **From source**: double-click `run.bat`, or `python airkeys.py`.
 
-Menú → **3) Gaming**. No necesita entrenar nada.
-
----
-
-## 5. Modo TECLADO completo (escribir letras)
-
-Este es el difícil. Escribe letras sobre una mesa vacía. **Necesita entrenar** con
-tus propios datos (cada persona teclea distinto).
-
-1. Cámara a ~45° (ver arriba).
-2. Menú → **6) Grabar teclado**: sigue el metrónomo, pulsa en el aire cada letra que
-   aparece. Haz varias sesiones (más datos = mejor).
-3. Menú → **5) Calibrar tap**: copia los valores sugeridos a `settings.json`.
-4. Menú → **7) Entrenar**.
-5. Menú → **2) Teclado**: prueba. Si va bien, control real.
-
-> Realista: el teclado es investigación. La precisión depende mucho de la cámara y de
-> cuántos datos grabes. El ratón y el gaming funcionan sin entrenar.
+The window opens with the camera already live. Pick a mode and press **Start**.
+Every mode starts in **test mode** (it does not control your real mouse/keyboard).
+Turn on **Real control** when you trust it.
 
 ---
 
-## 6. Ajustes (`settings.json`)
+## 3. MOUSE mode
 
-Copia `settings.example.json` a `settings.json` (junto al programa) y cambia lo que
-quieras. Cualquier valor de `config.py` se puede sobreescribir. Ejemplos:
+1. Settings → tools → **Calibrate mouse**: two gestures when prompted (hand to the
+   **right**, then hand **forward**). ~8 seconds. Once per camera position.
+2. Start **Mouse** mode. Neutral pose = **fist**. Gestures:
+   - **Fist** + move hand → moves the cursor (relative, like a real mouse).
+   - **Open the thumb** away from the hand → **left click** (held while open).
+   - **Extend the index** finger → **right click** (held while extended).
+   - **Flat hand** (all fingers straight) → freezes the cursor (reposition freely).
+
+The telemetry panel shows the live thumb/index meters and the threshold markers —
+watch them to tune the click thresholds in Settings (they apply live).
+
+Feel: `MOUSE_GAIN` (sensitivity), `MOUSE_SMOOTH` (smoothing), `MOUSE_DEADZONE`
+(idle jitter), `MOUSE_ACCEL` (pointer acceleration).
+
+---
+
+## 4. GAMING mode (mouse + keys, no training)
+
+- **Right hand** = mouse (same as above).
+- **Left hand** = held keys. Each finger is one key; **finger down** presses and
+  holds it (like holding W to run).
+- Default mapping (`GAMING_KEYS` in settings.json):
+  pinky=Shift, ring=A, middle=W, index=D, thumb=Space.
+
+No training needed.
+
+---
+
+## 5. Full KEYBOARD mode (typing letters)
+
+The hard one. Types letters on an empty desk. **Needs training** with your own
+data (everyone types differently).
+
+1. Camera at ~45° (see above).
+2. **Record keyboard** (Settings → tools): follow the metronome, tap each shown
+   letter in the air. Do several sessions (more data = better).
+3. **Calibrate tap**: copy the suggested thresholds into `settings.json`.
+4. **Train keyboard**.
+5. Start **Keyboard** mode: test first, then real control.
+
+> Realistic expectations: keyboard mode is research-grade. Accuracy depends on
+> camera placement and how much data you record. Mouse and Gaming work untrained.
+
+---
+
+## 6. Settings (`settings.json`)
+
+Copy `settings.example.json` to `settings.json` (next to the app) and change
+anything. Any value in `config.py` can be overridden. Examples:
 
 ```json
 { "MOUSE_HAND": "Left", "MOUSE_GAIN": 1.4, "CAM_NAME": "Logitech" }
 ```
 
+The UI edits the common ones live.
+
 ---
 
-## 7. Problemas típicos
+## 7. Troubleshooting
 
-- **No ve la cámara / ve otra (DroidCam, OBS)**: pon `CAM_NAME` con parte del nombre
-  de tu webcam en `settings.json`.
-- **El cursor tiembla en reposo**: sube `MOUSE_DEADZONE`.
-- **Movimiento a tirones**: baja `MOUSE_SMOOTH`.
-- **Clic izquierdo salta/no responde**: mira el valor `t:` en pantalla al abrir el
-  pulgar y ajusta `MOUSE_THUMB_OPEN` justo por debajo de ese valor. Clic derecho:
-  mira `i:` al estirar el índice y ajusta `MOUSE_INDEX_EXTEND`.
-- **El teclado no escribe nada**: casi siempre es la cámara (no ve el golpe vertical)
-  o pocos datos. Cámara a ~45° y graba más.
-- **Izquierda/derecha cambiadas**: pon `"SWAP_HANDS": true`.
+- **Wrong camera / camera not found (DroidCam, OBS)**: pick it in Settings →
+  Camera, or set `CAM_NAME` with part of your webcam's name. `python -m
+  tools.probe_cam` lists working backends/indices.
+- **Cursor jitters at rest**: raise `MOUSE_DEADZONE`.
+- **Jerky movement**: lower `MOUSE_SMOOTH`.
+- **Left click misfires / won't fire**: watch the *thumb* meter while opening your
+  thumb and set the left-click threshold just below its peak. Right click: same
+  with the *index* meter.
+- **Keyboard types nothing**: almost always the camera (can't see the vertical
+  strike) or too little data. Camera at ~45° and record more.
+- **Left/right hands swapped**: set `"SWAP_HANDS": true`.
+- **Camera paused ("click to resume")**: an external tool took the camera; close
+  it and click the video area.

@@ -2,7 +2,7 @@
 ; Requiere haber generado antes dist\AirKeys\ con build.ps1 / PyInstaller.
 
 #define AppName "AirKeys"
-#define AppVersion "1.0.0"
+#define AppVersion "0.9.0"
 #define AppPublisher "AirKeys"
 #define AppExe "AirKeys.exe"
 

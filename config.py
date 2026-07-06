@@ -90,10 +90,6 @@ LR = 1e-3
 EPOCHS = 40
 BATCH = 128
 NONE_WEIGHT = 0.15   # baja el peso de la clase 'none' (dominante)
-# (HIDDEN/LAYERS/DROPOUT del modelo antiguo KeyGRU, aun disponibles)
-HIDDEN = 128
-LAYERS = 2
-DROPOUT = 0.2
 
 # --- Deteccion de pulsacion (TAP) ---
 # Clave para la precision: solo se emite tecla cuando un dedo hace el gesto real de
@@ -110,7 +106,6 @@ TAP_BASELINE_ALPHA = 0.12 # suavizado del nivel de reposo (hover)
 TAP_LIFT = 0.18
 
 # --- Inferencia ---
-CONF_THRESH = 0.55   # (modo antiguo sin tap) umbral de confianza
 KEY_CONF_MIN = 0.30  # confianza minima del experto para aceptar la tecla de un tap
 DEBOUNCE_S = 0.12    # tiempo minimo entre dos emisiones de la misma tecla
 
@@ -160,7 +155,8 @@ MOUSE_FLAT_EXIT = 0.72     # por debajo (puño), se mueve
 # Ambos MANTENIDOS mientras dure el gesto. Histeresis. En pantalla se ve i:/t:.
 MOUSE_THUMB_OPEN = 0.55    # apertura (0..1 reescalada) POR ENCIMA = click IZQ
 MOUSE_THUMB_CLOSE = 0.35   # por DEBAJO suelta el izquierdo
-MOUSE_INDEX_EXTEND = 0.80  # rectitud del indice POR ENCIMA = click DER (estirado)
+MOUSE_INDEX_EXTEND = 0.80  # extension del indice (0..1 reescalada: puño=0,
+                           # estirado=1) POR ENCIMA = click DER
 MOUSE_INDEX_RETRACT = 0.62 # por DEBAJO suelta el derecho
 MOUSE_BTN_COOLDOWN = 8     # frames sin clicks tras volver de plana / perder la mano
 

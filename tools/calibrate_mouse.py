@@ -120,7 +120,7 @@ def main():
         print("[CALIB] AVISO: 'derecha' y 'alante' salieron casi paralelos. "
               "Repite la calibracion con gestos mas distintos.")
     else:
-        print("[CALIB] OK. Prueba: python -m tools.mouse_test")
+        print("[CALIB] OK. Prueba: python airkeys.py mouse")
 
 
 if __name__ == "__main__":

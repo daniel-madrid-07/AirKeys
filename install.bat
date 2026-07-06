@@ -1,20 +1,20 @@
 @echo off
-REM Instalacion desde codigo fuente: crea el entorno y las dependencias.
-REM Necesita Python 3.11-3.13 instalado (python.org, marca "Add to PATH").
+REM Install from source: creates the virtual env and installs dependencies.
+REM Requires Python 3.11-3.13 (python.org, check "Add to PATH").
 cd /d "%~dp0"
-echo == Creando entorno virtual ==
+echo == Creating virtual environment ==
 python -m venv .venv || goto :err
-echo == Instalando dependencias (tarda unos minutos) ==
+echo == Installing dependencies (takes a few minutes) ==
 ".venv\Scripts\python.exe" -m pip install --upgrade pip
 ".venv\Scripts\python.exe" -m pip install -r requirements.txt || goto :err
-echo == Comprobando camara y entorno ==
+echo == Checking camera and environment ==
 ".venv\Scripts\python.exe" airkeys.py check
 echo.
-echo LISTO. Arranca con "Iniciar AirKeys.bat"
+echo DONE. Start with run.bat
 pause
 exit /b 0
 :err
 echo.
-echo ERROR en la instalacion. Revisa que Python este instalado y en el PATH.
+echo Install ERROR. Check that Python is installed and on PATH.
 pause
 exit /b 1

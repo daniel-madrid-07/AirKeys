@@ -7,8 +7,6 @@ Esto convierte el problema en clasificacion de secuencias.
 import glob
 
 import numpy as np
-import torch
-from torch.utils.data import Dataset
 
 import config as C
 
@@ -38,7 +36,8 @@ def load_all(pattern=None):
     pattern = pattern or str(C.DATA_DIR / "*.npz")
     files = sorted(glob.glob(pattern))
     if not files:
-        raise FileNotFoundError(f"No hay datasets en {pattern}. Graba con record_dataset.")
+        raise FileNotFoundError(
+            f"No hay datasets en {pattern}. Graba con: python airkeys.py record")
     _, to_idx = build_label_maps()
     Xs, ys = [], []
     for f in files:
@@ -52,15 +51,3 @@ def load_all(pattern=None):
     X = np.concatenate(Xs)
     y = np.concatenate(ys)
     return X, y, files
-
-
-class WindowDataset(Dataset):
-    def __init__(self, X, y):
-        self.X = torch.from_numpy(X)
-        self.y = torch.from_numpy(y)
-
-    def __len__(self):
-        return len(self.y)
-
-    def __getitem__(self, i):
-        return self.X[i], self.y[i]

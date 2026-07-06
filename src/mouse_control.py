@@ -87,12 +87,27 @@ _CHAIN = {"index": (5, 6, 7, 8), "middle": (9, 10, 11, 12)}
 
 
 def finger_straight(lms, finger):
-    """Rectitud de UN dedo (0..1). Recogido en puño ~0.1, estirado ~1.0."""
+    """Rectitud CRUDA de UN dedo (0..1). Recogido en puño ~0.2, estirado ~0.95."""
     a, b, c, d = _CHAIN[finger]
     chain = (np.linalg.norm(_p(lms, a) - _p(lms, b)) +
              np.linalg.norm(_p(lms, b) - _p(lms, c)) +
              np.linalg.norm(_p(lms, c) - _p(lms, d)))
     return float(np.linalg.norm(_p(lms, a) - _p(lms, d)) / (chain + 1e-6))
+
+
+# Rango util de la rectitud del indice (vista cenital, saliendo de PUÑO): recogido
+# mide ~0.20 (nunca 0: la punta no toca el nudillo) y estirado ~0.90+. Remapeamos
+# [LO, HI] -> [0, 1] para que el medidor y el umbral usen TODO el rango: puño = 0
+# fijo, indice estirado = 1.
+_INDEX_LO = 0.30   # por debajo de esto (recogido) -> 0
+_INDEX_HI = 0.85   # por encima de esto (estirado) -> 1
+
+
+def index_extend(lms):
+    """Extension del indice (0..1) reescalada al rango util humano:
+    recogido en puño -> 0, estirado de forma natural -> 1."""
+    raw = finger_straight(lms, "index")
+    return max(0.0, min(1.0, (raw - _INDEX_LO) / (_INDEX_HI - _INDEX_LO)))
 
 
 # Rango util del angulo del pulgar (en fraccion de 90 grados): el pulgar humano
@@ -319,7 +334,7 @@ class FingerButtons:
             nl = nr = False
             self.cooldown = C.MOUSE_BTN_COOLDOWN
         else:
-            idx = finger_straight(lms, "index")    # sube al estirar el indice
+            idx = index_extend(lms)                 # sube al estirar el indice (0..1)
             thumb = thumb_open(lms)                 # sube al abrir el pulgar
             if self.cooldown > 0:
                 self.cooldown -= 1

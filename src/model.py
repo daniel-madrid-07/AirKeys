@@ -1,56 +1,14 @@
-"""Modelo pequeño: GRU bidireccional sobre la ventana de landmarks.
+"""Modelo multi-experto de teclado: un mini-GRU por dedo, cada uno ve SOLO sus
+landmarks. Pocos parametros; entrena en minutos en CPU.
 
 Entrada:  (batch, WINDOW, FEATURE_DIM)
-Salida:   (batch, num_classes)  logits
-
-Pocos parametros (~200k). Entrena en minutos en CPU.
+Salida:   logits por experto (ver MultiFingerModel)
 """
 import torch
 import torch.nn as nn
 
 import config as C
-
-
-class KeyGRU(nn.Module):
-    def __init__(self, num_classes):
-        super().__init__()
-        self.gru = nn.GRU(
-            input_size=C.FEATURE_DIM,
-            hidden_size=C.HIDDEN,
-            num_layers=C.LAYERS,
-            batch_first=True,
-            dropout=C.DROPOUT if C.LAYERS > 1 else 0.0,
-            bidirectional=True,
-        )
-        self.head = nn.Sequential(
-            nn.LayerNorm(C.HIDDEN * 2),
-            nn.Dropout(C.DROPOUT),
-            nn.Linear(C.HIDDEN * 2, num_classes),
-        )
-
-    def forward(self, x):
-        out, _ = self.gru(x)          # (B, W, 2H)
-        center = out[:, C.CENTER, :]  # estado en el frame central
-        return self.head(center)
-
-
-def save(model, classes, path):
-    torch.save({"state_dict": model.state_dict(), "classes": classes}, path)
-
-
-def load(path, device="cpu"):
-    ckpt = torch.load(path, map_location=device)
-    classes = ckpt["classes"]
-    model = KeyGRU(len(classes))
-    model.load_state_dict(ckpt["state_dict"])
-    model.to(device).eval()
-    return model, classes
-
-
-# =========================================================================
-# Modelo multi-experto: un mini-GRU por dedo, cada uno ve SOLO sus landmarks.
-# =========================================================================
-from src.fingers import build_experts  # noqa: E402
+from src.fingers import build_experts
 
 
 class FingerExpert(nn.Module):
