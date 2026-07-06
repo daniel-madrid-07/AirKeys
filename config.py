@@ -154,20 +154,15 @@ MOUSE_BETA = 0.03
 MOUSE_FLAT_ENTER = 0.85    # rectitud media de la mano para CONGELAR
 MOUSE_FLAT_EXIT = 0.72     # por debajo (puño), se mueve
 
-# CLICKS (mano en PUÑO = mover):
-#   IZQUIERDO = LEVANTAR el indice RESPECTO A SU REPOSO (sea cual sea la postura).
-#               Se sigue el nivel de reposo del indice y se detecta cuando lo subes.
-#   DERECHO   = SACAR/estirar el MEDIO (rectitud absoluta).
-# Ambos MANTENIDOS mientras dure el gesto. Histeresis. mouse_test muestra izq:/der:.
-MOUSE_LIFT_ENTER = 0.28    # cuanto SUBIR el indice sobre su reposo -> pulsa izq
-MOUSE_LIFT_EXIT = 0.14     # por debajo, suelta el izquierdo
-MOUSE_LIFT_ALPHA = 0.12    # seguimiento del reposo del indice (mientras no pulsa)
-MOUSE_LIFT_STRAIGHT = 0.80 # el indice debe estar ESTIRADO para contar como levantado
-                           # (un dedo FLEXIONADO nunca pulsa, aunque suba la punta)
-MOUSE_BTN_COOLDOWN = 10    # frames sin permitir clicks tras volver de mano plana /
-                           # perder la mano (deja que el reposo del indice se asiente)
-MOUSE_BTN_EXTEND = 0.85    # rectitud del medio para pulsar derecho
-MOUSE_BTN_RETRACT = 0.70   # por debajo, suelta el derecho
+# CLICKS (camara CENITAL; mano apuntando con el indice arriba = mover):
+#   IZQUIERDO = CURVAR/doblar el indice (baja su rectitud). Gesto claro desde arriba.
+#   DERECHO   = ABRIR el pulgar hacia fuera (sube la distancia pulgar<->mano).
+# Ambos MANTENIDOS mientras dure el gesto. Histeresis. En pantalla se ve i:/t:.
+MOUSE_LEFT_CURL = 0.72     # rectitud del indice POR DEBAJO = click IZQ (curvado)
+MOUSE_LEFT_RELEASE = 0.82  # por ENCIMA suelta el izquierdo (histeresis)
+MOUSE_THUMB_OPEN = 0.85    # apertura del pulgar POR ENCIMA = click DER (abierto)
+MOUSE_THUMB_CLOSE = 0.65   # por DEBAJO suelta el derecho
+MOUSE_BTN_COOLDOWN = 8     # frames sin clicks tras volver de plana / perder la mano
 
 # --- Overrides de usuario ---
 # Crea un settings.json junto a este archivo con claves en MAYUSCULAS para

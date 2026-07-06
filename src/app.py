@@ -144,6 +144,9 @@ class Engine:
                     status += " · IZQ"
                 if ev["right"]:
                     status += " · DER"
+                # valores en vivo para afinar (i=curvatura indice, t=pulgar abierto)
+                cv2.putText(frame, f"i:{ev['idx']:.2f}  t:{ev['thumb']:.2f}",
+                            (12, 72), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 200, 255), 2)
         if self.keyboard:
             self.keyboard.tick(feat, now)
             if self.keyboard.recent:

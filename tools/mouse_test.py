@@ -87,7 +87,7 @@ def main():
                 estado = "PLANA (congelado)" if info["frozen"] else "moviendo"
                 cv2.putText(frame,
                             f"{estado}  recto:{info['straight']:.2f}  "
-                            f"izq(lift):{ev['lift']:+.2f}  der:{ev['mid']:.2f}",
+                            f"i(curl):{ev['idx']:.2f}  t(pulgar):{ev['thumb']:.2f}",
                             (12, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, col, 2)
                 if not info["frozen"]:
                     out.move(info["sx"], info["sy"])

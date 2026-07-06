@@ -95,12 +95,12 @@ def finger_straight(lms, finger):
     return float(np.linalg.norm(_p(lms, a) - _p(lms, d)) / (chain + 1e-6))
 
 
-def index_raise(lms):
-    """Cuanto esta LEVANTADO el indice: (y nudillo - y punta) / tamaño de mano.
-    Punta por encima del nudillo (dedo hacia arriba) -> positivo y grande.
-    Dedo apoyado/apuntando hacia abajo -> ~0 o negativo."""
+def thumb_open(lms):
+    """Apertura del pulgar = distancia punta-pulgar(4) -> nudillo-indice(5), en
+    tamaños de mano. Pulgar recogido/pegado -> pequeño; abierto hacia fuera -> grande.
+    Visible y estable desde arriba; independiente de que el indice se curve."""
     scale = np.linalg.norm(_p(lms, 0) - _p(lms, 9)) + 1e-6
-    return float((lms[5].y - lms[8].y) / scale)
+    return float(np.linalg.norm(_p(lms, 4) - _p(lms, 5)) / scale)
 
 
 class OneEuro:
@@ -288,59 +288,46 @@ def hand_bbox(result, frame_w, frame_h, margin=0.15):
 
 
 class FingerButtons:
-    """Botones por EXTENSION de dedo (mantenidos). Mano en puño = nada pulsado.
-    Sacar INDICE = boton IZQ mantenido; sacar MEDIO = boton DER mantenido.
-    Devuelve el estado + flancos (press/release) para accionar el raton real.
-    Mientras 'frozen' (mano plana) no se pulsa nada."""
+    """Botones para camara CENITAL (mantenidos):
+      IZQUIERDO = CURVAR el indice (su rectitud cae por debajo de MOUSE_LEFT_CURL).
+      DERECHO   = ABRIR el pulgar (thumb_open sube por encima de MOUSE_THUMB_OPEN).
+    Devuelve estado + flancos (press/release). Mientras 'frozen' (mano plana) no se
+    pulsa nada; tras volver de plana hay un cooldown para no soltar clicks falsos."""
 
     def __init__(self):
         self.left = False
         self.right = False
-        self.lift_base = None       # nivel de reposo del indice (adaptativo)
-        self.cooldown = 0           # frames sin permitir clicks tras plana/perder mano
-
-    @staticmethod
-    def _hyst(cur, val, enter, exit_):
-        if not cur and val > enter:
-            return True
-        if cur and val < exit_:
-            return False
-        return cur
+        self.cooldown = 0
 
     def update(self, lms, frozen):
-        lift_rel = mid = 0.0
+        idx = thumb = 0.0
         if lms is None or frozen:
             nl = nr = False
-            self.lift_base = None                  # re-calcula el reposo al volver
-            self.cooldown = C.MOUSE_BTN_COOLDOWN    # y espera a que se estabilice
+            self.cooldown = C.MOUSE_BTN_COOLDOWN
         else:
-            lift = index_raise(lms)
-            extended = finger_straight(lms, "index") > C.MOUSE_LIFT_STRAIGHT
-            if self.lift_base is None:
-                self.lift_base = lift
-            # el reposo se sigue solo con el indice ESTIRADO y sin subir aun, para no
-            # contaminarlo con el dedo flexionado ni comerse el gesto de levantar.
-            if (extended and not self.left and
-                    lift < self.lift_base + C.MOUSE_LIFT_ENTER * 0.5):
-                self.lift_base += C.MOUSE_LIFT_ALPHA * (lift - self.lift_base)
-            lift_rel = lift - self.lift_base       # cuanto por encima de su reposo
-            mid = finger_straight(lms, "middle")
-
-            if self.cooldown > 0:                  # recien vuelto: no permitir clicks
+            idx = finger_straight(lms, "index")    # ~1.0 recto, baja al curvar
+            thumb = thumb_open(lms)                 # sube al abrir el pulgar
+            if self.cooldown > 0:
                 self.cooldown -= 1
                 nl = nr = False
             else:
-                nl = (self._hyst(self.left, lift_rel,
-                                 C.MOUSE_LIFT_ENTER, C.MOUSE_LIFT_EXIT)
-                      if extended else False)      # flexionado -> nunca click izq
-                nr = self._hyst(self.right, mid,
-                                C.MOUSE_BTN_EXTEND, C.MOUSE_BTN_RETRACT)
+                # IZQ: se activa cuando el indice CAE por debajo de CURL; suelta al
+                # volver por encima de RELEASE (histeresis con umbrales invertidos).
+                if not self.left:
+                    nl = idx < C.MOUSE_LEFT_CURL
+                else:
+                    nl = idx < C.MOUSE_LEFT_RELEASE
+                # DER: pulgar abierto por encima de OPEN; suelta por debajo de CLOSE.
+                if not self.right:
+                    nr = thumb > C.MOUSE_THUMB_OPEN
+                else:
+                    nr = thumb > C.MOUSE_THUMB_CLOSE
         ev = {"left": nl, "right": nr,
               "press_left": nl and not self.left,
               "release_left": self.left and not nl,
               "press_right": nr and not self.right,
               "release_right": self.right and not nr,
-              "lift": lift_rel, "mid": mid}
+              "idx": idx, "thumb": thumb}
         self.left, self.right = nl, nr
         return ev
 

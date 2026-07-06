@@ -43,11 +43,11 @@ Verás un menú. Empieza por **8) Comprobar cámara** para confirmar que se ve t
 
 1. Menú → **4) Calibrar ratón**: haz dos gestos cuando te los pida (mano a la
    **derecha**, luego mano **alante**). ~8 segundos. Solo una vez por posición de cámara.
-2. Menú → **1) Ratón**. Gestos:
-   - **Puño** y mover la mano → mueve el cursor (relativo, como un ratón real).
-   - **Levantar el índice** (estirado, hacia arriba) → clic **izquierdo** mantenido.
-   - **Sacar el corazón** → clic **derecho** mantenido.
-   - **Mano plana** → congela el cursor (para recolocar la mano sin moverlo).
+2. Menú → **1) Ratón** (cámara CENITAL, mano con el índice hacia arriba). Gestos:
+   - **Índice arriba** y mover la mano → mueve el cursor (relativo).
+   - **Curvar/doblar el índice** → clic **izquierdo** mantenido.
+   - **Abrir el pulgar** hacia fuera → clic **derecho** mantenido.
+   - **Mano plana** (todos los dedos rectos) → congela el cursor (recolocar sin mover).
 
 Sensación (en `settings.json`): `MOUSE_GAIN` (sensibilidad), `MOUSE_SMOOTH`
 (suavizado), `MOUSE_DEADZONE` (tembleque en reposo).
@@ -100,7 +100,9 @@ quieras. Cualquier valor de `config.py` se puede sobreescribir. Ejemplos:
   de tu webcam en `settings.json`.
 - **El cursor tiembla en reposo**: sube `MOUSE_DEADZONE`.
 - **Movimiento a tirones**: baja `MOUSE_SMOOTH`.
-- **Clic izquierdo salta solo**: sube `MOUSE_LIFT_ENTER` o `MOUSE_LIFT_STRAIGHT`.
+- **Clic izquierdo salta/no responde**: ajusta `MOUSE_LEFT_CURL` (mira el valor `i:`
+  en pantalla al curvar el índice y pon el umbral justo por encima). Clic derecho:
+  `MOUSE_THUMB_OPEN` (valor `t:` al abrir el pulgar).
 - **El teclado no escribe nada**: casi siempre es la cámara (no ve el golpe vertical)
   o pocos datos. Cámara a ~45° y graba más.
 - **Izquierda/derecha cambiadas**: pon `"SWAP_HANDS": true`.
