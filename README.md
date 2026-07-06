@@ -9,7 +9,22 @@ Your hand in the air *is* the device — no hardware, no gloves, fully offline.
 
 *Move the cursor with your fist, click by opening your thumb, hold keys for gaming, or type letters on an empty desk.*
 
+[![Latest release](https://img.shields.io/github/v/release/daniel-madrid-07/AirKeys?include_prereleases&label=release&color=54befa)](https://github.com/daniel-madrid-07/AirKeys/releases)
+[![Downloads](https://img.shields.io/github/downloads/daniel-madrid-07/AirKeys/total?color=2aa7f0&label=downloads)](https://github.com/daniel-madrid-07/AirKeys/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%20x64-1f6feb)](https://github.com/daniel-madrid-07/AirKeys/releases)
+[![License](https://img.shields.io/badge/license-MIT-8bc34a)](LICENSE)
+
 </div>
+
+---
+
+## Downloads
+
+| Version | Installer | Portable | Status |
+|---------|-----------|----------|--------|
+| **v0.9.0-beta** | [AirKeys-v0.9.0-beta-Setup.exe](https://github.com/daniel-madrid-07/AirKeys/releases/download/v0.9.0-beta/AirKeys-v0.9.0-beta-Setup.exe) | [AirKeys-v0.9.0-beta-win64.zip](https://github.com/daniel-madrid-07/AirKeys/releases/download/v0.9.0-beta/AirKeys-v0.9.0-beta-win64.zip) | Beta |
+
+Every version, with release notes, on the [Releases page](../../releases).
 
 ---
 
