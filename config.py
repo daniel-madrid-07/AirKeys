@@ -158,8 +158,8 @@ MOUSE_FLAT_EXIT = 0.72     # por debajo (puño), se mueve
 #   IZQUIERDO = ABRIR/alejar el pulgar de la mano (sube la distancia pulgar<->mano).
 #   DERECHO   = ESTIRAR el indice (sube su rectitud).
 # Ambos MANTENIDOS mientras dure el gesto. Histeresis. En pantalla se ve i:/t:.
-MOUSE_THUMB_OPEN = 0.26    # angulo de apertura del pulgar POR ENCIMA = click IZQ
-MOUSE_THUMB_CLOSE = 0.16   # por DEBAJO suelta el izquierdo (reposo ~0.08)
+MOUSE_THUMB_OPEN = 0.55    # apertura (0..1 reescalada) POR ENCIMA = click IZQ
+MOUSE_THUMB_CLOSE = 0.35   # por DEBAJO suelta el izquierdo
 MOUSE_INDEX_EXTEND = 0.80  # rectitud del indice POR ENCIMA = click DER (estirado)
 MOUSE_INDEX_RETRACT = 0.62 # por DEBAJO suelta el derecho
 MOUSE_BTN_COOLDOWN = 8     # frames sin clicks tras volver de plana / perder la mano
