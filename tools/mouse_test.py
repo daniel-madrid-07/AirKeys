@@ -18,7 +18,7 @@ import cv2
 
 import config as C
 from src.hand_tracker import HandTracker, draw
-from src.camera import open_camera
+from src.camera import open_camera, orient
 from src.mouse_control import (VirtualMouse, FingerButtons, MouseOut,
                                hand_bbox, hand_mask, _pick_hand)
 from src.flow_sensor import FlowSensor
@@ -50,8 +50,7 @@ def main():
             ok, frame = cap.read()
             if not ok:
                 break
-            if C.FLIP_HORIZONTAL:
-                frame = cv2.flip(frame, 1)
+            frame = orient(frame)
             now = time.perf_counter()
             feat, res = tracker.process(frame)
             draw(frame, res)

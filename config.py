@@ -30,6 +30,13 @@ TARGET_FPS = 60      # webcam a 60fps (MJPG). El proceso real puede ir algo meno
 # Espejo horizontal. False = orientacion real (qwerty se lee qwerty).
 # True = vista selfie. Debe ser IGUAL al grabar y al inferir.
 FLIP_HORIZONTAL = False
+# Rotacion de la imagen en grados (0/90/180/270). Util con la camara CENITAL
+# (montada arriba mirando abajo): ajusta hasta que tus manos salgan naturales,
+# los dedos apuntando hacia ARRIBA de la imagen y la izquierda a la izquierda.
+CAM_ROTATE = 0
+# Vista de la camara: "side" (de lado, solo raton) u "overhead" (arriba/inclinada,
+# recomendada para raton+teclado+gaming). Solo informativo/guia; el resto se calibra.
+CAM_VIEW = "side"
 
 # --- MediaPipe Hands (API Tasks) ---
 # Preferimos el modelo escribible (MODEL_DIR); si no, el empaquetado (BUNDLE).

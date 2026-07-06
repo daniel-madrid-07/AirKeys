@@ -14,7 +14,14 @@ La posición de la cámara es lo que más afecta a la precisión.
 | **Teclado** | **Elevada y en ángulo (~45–60°)**, delante-arriba mirando las manos. Así ve el golpe vertical del dedo *y* la posición de cada tecla. |
 | **Gaming** (ratón+teclado) | La misma de ~45° delante-arriba: sirve para las dos. |
 
-> Recomendación general: una webcam en un brazo/tripode a ~45° sobre la mesa, mirando tus manos desde delante-arriba, cubre los tres modos. Solo tendrás que recalibrar al cambiar de sitio.
+> Recomendación general: una webcam en un brazo/tripode **elevada y mirando abajo en ángulo (~45–60°)** sobre la mesa, delante-arriba de tus manos, cubre los tres modos. Es el punto óptimo: ve el golpe vertical del dedo (teclado/clics) y el plano (ratón). Perfectamente vertical (90°) NO es lo ideal: pierde el gesto vertical.
+
+**Orientación (montaje cenital/arriba).** Al montar la cámara arriba suele quedar girada. Ajusta en **Ajustes → o en `settings.json`**:
+- `CAM_ROTATE`: `0` / `90` / `180` / `270`. Cámbialo hasta que tus manos salgan naturales, **dedos hacia arriba de la imagen** e izquierda a la izquierda.
+- `FLIP_HORIZONTAL`: `true`/`false` si izquierda y derecha salen cambiadas.
+- Marca `CAM_VIEW` = `"overhead"` (informativo).
+
+**Importante:** deja `CAM_ROTATE`/`FLIP_HORIZONTAL` fijos y **recalibra** (ratón y tap) en esa posición. Deben ser iguales al calibrar, grabar y usar.
 
 Buena luz y fondo de mesa mate ayudan.
 

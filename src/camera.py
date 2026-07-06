@@ -49,3 +49,19 @@ def reported_fps(cap):
         return float(cap.get(cv2.CAP_PROP_FPS))
     except Exception:
         return 0.0
+
+
+_ROT = {90: cv2.ROTATE_90_CLOCKWISE, 180: cv2.ROTATE_180,
+        270: cv2.ROTATE_90_COUNTERCLOCKWISE}
+
+
+def orient(frame):
+    """Aplica espejo + rotacion configurados. Usar en TODOS los bucles de camara
+    para que grabar, calibrar e inferir vean la imagen igual (clave con la camara
+    cenital, que suele quedar girada segun el montaje)."""
+    if C.FLIP_HORIZONTAL:
+        frame = cv2.flip(frame, 1)
+    r = getattr(C, "CAM_ROTATE", 0)
+    if r in _ROT:
+        frame = cv2.rotate(frame, _ROT[r])
+    return frame

@@ -24,7 +24,7 @@ from pynput import keyboard
 
 import config as C
 from src.hand_tracker import HandTracker, draw
-from src.camera import open_camera
+from src.camera import open_camera, orient
 
 
 def key_to_name(key):
@@ -62,8 +62,7 @@ def main():
             ok, frame = cap.read()
             if not ok:
                 break
-            if C.FLIP_HORIZONTAL:
-                frame = cv2.flip(frame, 1)
+            frame = orient(frame)
             t = time.perf_counter()
             feat, res = tracker.process(frame)
             frames_t.append(t)

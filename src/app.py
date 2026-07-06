@@ -15,7 +15,7 @@ import numpy as np
 
 import config as C
 from src.hand_tracker import HandTracker, draw
-from src.camera import open_camera
+from src.camera import open_camera, orient
 from src.mouse_control import (VirtualMouse, FingerButtons, MouseOut,
                                hand_mask, _pick_hand)
 from src.flow_sensor import FlowSensor
@@ -137,8 +137,7 @@ def run(mode, type_real=False):
             ok, frame = cap.read()
             if not ok:
                 break
-            if C.FLIP_HORIZONTAL:
-                frame = cv2.flip(frame, 1)
+            frame = orient(frame)
             now = time.perf_counter()
             feat, res = tracker.process(frame)
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if mouse else None

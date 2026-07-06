@@ -23,7 +23,7 @@ import numpy as np
 
 import config as C
 from src.hand_tracker import HandTracker, draw
-from src.camera import open_camera
+from src.camera import open_camera, orient
 
 
 def build_sequence(reps, seed=0):
@@ -63,8 +63,7 @@ def main():
             ok, frame = cap.read()
             if not ok:
                 break
-            if C.FLIP_HORIZONTAL:
-                frame = cv2.flip(frame, 1)
+            frame = orient(frame)
             now = time.perf_counter()
             feat, res = tracker.process(frame)
             frames_t.append(now)

@@ -134,6 +134,20 @@ class App:
                      orient="horizontal", bg=PANEL, fg=FG, troughcolor=BG,
                      highlightthickness=0, bd=0, length=170,
                      font=("Segoe UI", 7)).pack(side="right")
+        # camara: orientacion (util para montaje cenital/arriba)
+        camrow = tk.Frame(conf, bg=PANEL)
+        camrow.pack(fill="x", padx=10, pady=(4, 0))
+        tk.Label(camrow, text="Camara (montaje arriba)", font=("Segoe UI", 9),
+                 fg=FG, bg=PANEL, width=38, anchor="w").pack(side="left")
+        self.cam_flip = tk.BooleanVar(value=bool(C.FLIP_HORIZONTAL))
+        tk.Checkbutton(camrow, text="espejo", variable=self.cam_flip, font=("Segoe UI", 9),
+                       fg=FG, bg=PANEL, selectcolor=BG, activebackground=PANEL,
+                       activeforeground=ACC, highlightthickness=0).pack(side="right")
+        self.cam_rotate = tk.IntVar(value=int(getattr(C, "CAM_ROTATE", 0)))
+        tk.Label(camrow, text="rotar", font=("Segoe UI", 9), fg=MUT, bg=PANEL).pack(
+            side="right", padx=(0, 4))
+        tk.OptionMenu(camrow, self.cam_rotate, 0, 90, 180, 270).pack(side="right")
+
         tk.Button(conf, text="Guardar ajustes", font=FONT, bg=BG, fg=ACC, bd=0,
                   padx=10, pady=5, activebackground="#242c35",
                   command=self.save_settings).pack(anchor="e", padx=10, pady=6)
@@ -219,6 +233,8 @@ class App:
                 data = {}
         for key, var in self.vars.items():
             data[key] = round(float(var.get()), 6)
+        data["CAM_ROTATE"] = int(self.cam_rotate.get())
+        data["FLIP_HORIZONTAL"] = bool(self.cam_flip.get())
         path.write_text(json.dumps(data, indent=2), encoding="utf-8")
         self._log(f"Ajustes guardados en {path.name}. "
                   "Se aplican al (re)iniciar un modo.")

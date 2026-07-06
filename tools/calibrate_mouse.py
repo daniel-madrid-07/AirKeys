@@ -18,7 +18,7 @@ import numpy as np
 
 import config as C
 from src.hand_tracker import HandTracker, draw
-from src.camera import open_camera
+from src.camera import open_camera, orient
 from src.mouse_control import AXES_PATH, _pick_hand
 
 PHASES = [
@@ -60,8 +60,7 @@ def main():
             ok, frame = cap.read()
             if not ok:
                 break
-            if C.FLIP_HORIZONTAL:
-                frame = cv2.flip(frame, 1)
+            frame = orient(frame)
             _, res = tracker.process(frame)
             draw(frame, res)
             now = time.perf_counter()

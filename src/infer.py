@@ -17,7 +17,7 @@ import torch
 
 import config as C
 from src.hand_tracker import HandTracker, draw
-from src.camera import open_camera
+from src.camera import open_camera, orient
 from src.model import load_fingers
 from src.fingers import _hand_slot
 from src.tap import TapDetector
@@ -75,8 +75,7 @@ def main():
             ok, frame = cap.read()
             if not ok:
                 break
-            if C.FLIP_HORIZONTAL:
-                frame = cv2.flip(frame, 1)
+            frame = orient(frame)
             now = time.perf_counter()
             feat, res = tracker.process(frame)
             buf.append((now, feat))
