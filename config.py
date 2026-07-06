@@ -2,6 +2,9 @@
 import sys
 from pathlib import Path
 
+APP_VERSION = "0.9.0-beta"   # version instalada; se compara con la ultima release
+UPDATE_REPO = "daniel-madrid-07/AirKeys"   # repo de GitHub donde buscar updates
+
 ROOT = Path(__file__).resolve().parent
 
 # Modo empaquetado (PyInstaller): los assets de solo-lectura viven en el bundle

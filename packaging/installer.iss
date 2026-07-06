@@ -37,4 +37,6 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 Name: "desktopicon"; Description: "Crear icono en el escritorio"; GroupDescription: "Accesos directos:"
 
 [Run]
-Filename: "{app}\{#AppExe}"; Description: "Abrir AirKeys"; Flags: nowait postinstall skipifsilent
+; sin skipifsilent: tras una actualizacion silenciosa (boton "Actualizar" de
+; la app) AirKeys se relanza solo
+Filename: "{app}\{#AppExe}"; Description: "Abrir AirKeys"; Flags: nowait postinstall

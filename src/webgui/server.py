@@ -4,11 +4,14 @@ esta pagina, asi la interfaz es HTML/CSS pero todo corre local, sin navegador.
 """
 import json
 import logging
+import os
 import socket
 import subprocess
 import sys
+import tempfile
 import threading
 import time
+import urllib.request
 from pathlib import Path
 
 import cv2
@@ -309,6 +312,99 @@ def api_settings():
                 start_preview()
         return jsonify(ok=True)
     return jsonify({k: cur.get(k, getattr(C, k)) for k in SETTING_KEYS})
+
+
+# ------------------------------------------------------------------ updates
+# Busca la ultima release del repo, descarga el Setup.exe y lo lanza en modo
+# silencioso; el instalador cierra/actualiza y relanza la app.
+_UPD = {"state": "idle", "progress": 0.0, "error": "", "latest": ""}
+
+
+def _ver_parts(tag):
+    """'v0.9.1-beta' -> ((0, 9, 1), es_prerelease)."""
+    core = tag.strip().lstrip("vV")
+    pre = "-" in core
+    nums = []
+    for p in core.split("-")[0].split("."):
+        if p.isdigit():
+            nums.append(int(p))
+    return tuple(nums), pre
+
+
+def _is_newer(latest, current):
+    ln, lpre = _ver_parts(latest)
+    cn, cpre = _ver_parts(current)
+    if ln != cn:
+        return ln > cn
+    return cpre and not lpre        # misma version numerica: estable > beta
+
+
+def _gh_json(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "AirKeys",
+                                               "Accept": "application/vnd.github+json"})
+    with urllib.request.urlopen(req, timeout=8) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+@app.route("/api/update/check")
+def api_update_check():
+    try:
+        rel = _gh_json(f"https://api.github.com/repos/{C.UPDATE_REPO}/releases/latest")
+        tag = rel.get("tag_name", "")
+        asset = next((a for a in rel.get("assets", [])
+                      if a["name"].startswith("AirKeys") and a["name"].endswith("Setup.exe")),
+                     None)
+        return jsonify(ok=True, current=C.APP_VERSION, latest=tag.lstrip("vV"),
+                       update=bool(asset) and _is_newer(tag, C.APP_VERSION),
+                       url=asset["browser_download_url"] if asset else "")
+    except Exception as e:
+        return jsonify(ok=False, current=C.APP_VERSION, error=str(e))
+
+
+def _download_and_install(url, version):
+    try:
+        path = Path(tempfile.gettempdir()) / f"AirKeys-{version}-Setup.exe"
+        req = urllib.request.Request(url, headers={"User-Agent": "AirKeys"})
+        with urllib.request.urlopen(req, timeout=30) as r, open(path, "wb") as f:
+            total = int(r.headers.get("Content-Length") or 0)
+            got = 0
+            while True:
+                chunk = r.read(256 * 1024)
+                if not chunk:
+                    break
+                f.write(chunk)
+                got += len(chunk)
+                if total:
+                    _UPD["progress"] = got / total
+        _UPD["state"] = "installing"
+        stop(restart_preview=False)
+        stop_preview()                          # libera la camara
+        # /SILENT: instala con barra de progreso y relanza AirKeys al acabar
+        subprocess.Popen([str(path), "/SILENT", "/NORESTART"])
+        threading.Timer(1.5, lambda: os._exit(0)).start()   # cierra esta instancia
+    except Exception as e:
+        _UPD["state"] = "error"
+        _UPD["error"] = str(e)
+
+
+@app.route("/api/update/download", methods=["POST"])
+def api_update_download():
+    if _UPD["state"] in ("downloading", "installing"):
+        return jsonify(ok=True)
+    d = _json_body() or {}
+    url, version = d.get("url", ""), d.get("version", "")
+    if not (url.startswith(f"https://github.com/{C.UPDATE_REPO}/releases/download/")
+            and url.endswith(".exe")):
+        return jsonify(ok=False, error="bad url"), 400
+    _UPD.update(state="downloading", progress=0.0, error="", latest=version)
+    threading.Thread(target=_download_and_install, args=(url, version),
+                     daemon=True).start()
+    return jsonify(ok=True)
+
+
+@app.route("/api/update/status")
+def api_update_status():
+    return jsonify(**_UPD)
 
 
 def _free_port():

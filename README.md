@@ -34,7 +34,7 @@ Every version, with release notes, on the [Releases page](../../releases).
 - **Mouse = optical flow.** The camera works like a giant optical mouse sensor: ~100 skin-texture points are tracked with sub-pixel Lucas–Kanade, the median of their motion drives the cursor — relative, stable and precise, with pointer acceleration and a flat-hand clutch.
 - **Keyboard = home-row calibration + velocity-reversal strikes.** Press depth can't be seen by a single camera (the motion runs along the optical axis), so AirKeys avoids depth entirely: resting your hands on the desk calibrates the surface *appearance* per finger (the trick Meta's Quest surface keyboard uses), a keystroke is detected by its temporal signature — fast finger drop, hard stop, lift — and the key is decoded geometrically from where the fingertip landed on the QWERTY grid anchored to your home position. Each finger only competes for its own touch-typing columns; thumbs are space. Works untrained; an optional per-finger GRU model (metronome-guided recorder, inspired by *Typing on Any Surface*, arXiv:2309.00174) can replace the geometric decoder (`KB_DECODER`).
 
-Everything runs locally. No internet, no accounts, no telemetry.
+Everything runs locally. No internet, no accounts, no telemetry — the only optional network call is the update check in Settings, which queries this repo's GitHub releases.
 
 ## Modes
 
