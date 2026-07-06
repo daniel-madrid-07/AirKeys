@@ -96,11 +96,19 @@ def finger_straight(lms, finger):
 
 
 def thumb_open(lms):
-    """Apertura del pulgar = distancia punta-pulgar(4) -> nudillo-indice(5), en
-    tamaños de mano. Pulgar recogido/pegado -> pequeño; abierto hacia fuera -> grande.
-    Visible y estable desde arriba; independiente de que el indice se curve."""
-    scale = np.linalg.norm(_p(lms, 0) - _p(lms, 9)) + 1e-6
-    return float(np.linalg.norm(_p(lms, 4) - _p(lms, 5)) / scale)
+    """Apertura del pulgar = ANGULO entre el pulgar (nudillo 2 -> punta 4) y el eje
+    de la mano (muñeca 0 -> nudillo corazon 9), escalado a ~0..1 (1 = 90 grados).
+    Pulgar pegado/alineado -> pequeño; abierto/separado -> grande. Mucho mas
+    discriminante que la distancia (que apenas cambiaba). Independiente del indice."""
+    v1 = _p(lms, 4) - _p(lms, 2)          # direccion del pulgar
+    v2 = _p(lms, 9) - _p(lms, 0)          # eje de la mano (estable)
+    n1 = np.linalg.norm(v1)
+    n2 = np.linalg.norm(v2)
+    if n1 < 1e-6 or n2 < 1e-6:
+        return 0.0
+    cos = float(np.dot(v1, v2) / (n1 * n2))
+    ang = math.acos(max(-1.0, min(1.0, cos)))   # radianes, 0..pi
+    return ang / (math.pi / 2)                    # ~1.0 a 90 grados
 
 
 class OneEuro:
