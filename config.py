@@ -154,14 +154,14 @@ MOUSE_BETA = 0.03
 MOUSE_FLAT_ENTER = 0.85    # rectitud media de la mano para CONGELAR
 MOUSE_FLAT_EXIT = 0.72     # por debajo (puño), se mueve
 
-# CLICKS (camara CENITAL; mano apuntando con el indice arriba = mover):
-#   IZQUIERDO = CURVAR/doblar el indice (baja su rectitud). Gesto claro desde arriba.
-#   DERECHO   = ABRIR el pulgar hacia fuera (sube la distancia pulgar<->mano).
+# CLICKS (camara CENITAL; posicion normal = PUÑO):
+#   IZQUIERDO = ABRIR/alejar el pulgar de la mano (sube la distancia pulgar<->mano).
+#   DERECHO   = ESTIRAR el indice (sube su rectitud).
 # Ambos MANTENIDOS mientras dure el gesto. Histeresis. En pantalla se ve i:/t:.
-MOUSE_LEFT_CURL = 0.72     # rectitud del indice POR DEBAJO = click IZQ (curvado)
-MOUSE_LEFT_RELEASE = 0.82  # por ENCIMA suelta el izquierdo (histeresis)
-MOUSE_THUMB_OPEN = 0.85    # apertura del pulgar POR ENCIMA = click DER (abierto)
-MOUSE_THUMB_CLOSE = 0.65   # por DEBAJO suelta el derecho
+MOUSE_THUMB_OPEN = 0.85    # apertura del pulgar POR ENCIMA = click IZQ (pulgar fuera)
+MOUSE_THUMB_CLOSE = 0.65   # por DEBAJO suelta el izquierdo
+MOUSE_INDEX_EXTEND = 0.80  # rectitud del indice POR ENCIMA = click DER (estirado)
+MOUSE_INDEX_RETRACT = 0.62 # por DEBAJO suelta el derecho
 MOUSE_BTN_COOLDOWN = 8     # frames sin clicks tras volver de plana / perder la mano
 
 # --- Overrides de usuario ---

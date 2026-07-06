@@ -288,9 +288,9 @@ def hand_bbox(result, frame_w, frame_h, margin=0.15):
 
 
 class FingerButtons:
-    """Botones para camara CENITAL (mantenidos):
-      IZQUIERDO = CURVAR el indice (su rectitud cae por debajo de MOUSE_LEFT_CURL).
-      DERECHO   = ABRIR el pulgar (thumb_open sube por encima de MOUSE_THUMB_OPEN).
+    """Botones para camara CENITAL (mantenidos). Posicion normal = PUÑO.
+      IZQUIERDO = ABRIR el pulgar (thumb_open sube por encima de MOUSE_THUMB_OPEN).
+      DERECHO   = ESTIRAR el indice (rectitud sube por encima de MOUSE_INDEX_EXTEND).
     Devuelve estado + flancos (press/release). Mientras 'frozen' (mano plana) no se
     pulsa nada; tras volver de plana hay un cooldown para no soltar clicks falsos."""
 
@@ -305,23 +305,22 @@ class FingerButtons:
             nl = nr = False
             self.cooldown = C.MOUSE_BTN_COOLDOWN
         else:
-            idx = finger_straight(lms, "index")    # ~1.0 recto, baja al curvar
+            idx = finger_straight(lms, "index")    # sube al estirar el indice
             thumb = thumb_open(lms)                 # sube al abrir el pulgar
             if self.cooldown > 0:
                 self.cooldown -= 1
                 nl = nr = False
             else:
-                # IZQ: se activa cuando el indice CAE por debajo de CURL; suelta al
-                # volver por encima de RELEASE (histeresis con umbrales invertidos).
+                # IZQ: pulgar abierto por encima de OPEN; suelta por debajo de CLOSE.
                 if not self.left:
-                    nl = idx < C.MOUSE_LEFT_CURL
+                    nl = thumb > C.MOUSE_THUMB_OPEN
                 else:
-                    nl = idx < C.MOUSE_LEFT_RELEASE
-                # DER: pulgar abierto por encima de OPEN; suelta por debajo de CLOSE.
+                    nl = thumb > C.MOUSE_THUMB_CLOSE
+                # DER: indice estirado por encima de EXTEND; suelta por debajo RETRACT.
                 if not self.right:
-                    nr = thumb > C.MOUSE_THUMB_OPEN
+                    nr = idx > C.MOUSE_INDEX_EXTEND
                 else:
-                    nr = thumb > C.MOUSE_THUMB_CLOSE
+                    nr = idx > C.MOUSE_INDEX_RETRACT
         ev = {"left": nl, "right": nr,
               "press_left": nl and not self.left,
               "release_left": self.left and not nl,

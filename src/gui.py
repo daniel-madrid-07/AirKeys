@@ -36,7 +36,7 @@ FB = ("Segoe UI", 10, "bold")
 FH = ("Segoe UI", 20, "bold")
 
 MODE_INFO = {
-    "mouse":    ("Modo raton", "indice arriba mueve · CURVA el indice = clic izq · ABRE el pulgar = der · mano plana = congela"),
+    "mouse":    ("Modo raton", "puño mueve · ABRE el pulgar = clic izq · ESTIRA el indice = der · mano plana = congela"),
     "keyboard": ("Modo teclado", "escribir letras en el aire (requiere grabar y entrenar)"),
     "gaming":   ("Modo teclado + raton", "mano dcha = raton · mano izq = teclas mantenidas (WASD...)"),
 }
