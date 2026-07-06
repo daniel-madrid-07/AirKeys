@@ -148,10 +148,14 @@ class VirtualMouse:
             print(f"[MOUSE] ejes calibrados: derecha={self.u.round(2)} "
                   f"alante={self.v.round(2)}")
         else:
-            self.u = np.array([1.0, 0.0])      # sin calibrar: ejes de imagen tal cual
+            # Mapeo CENITAL por defecto (camara arriba mirando abajo, imagen ya
+            # orientada): mano a la DERECHA = cursor derecha; mano ALANTE (hacia
+            # arriba de la imagen) = cursor arriba. Funciona sin calibrar.
+            self.u = np.array([1.0, 0.0])
             self.v = np.array([0.0, -1.0])
-            self.amp_x = self.amp_y = 0.25
-            print("[MOUSE] SIN calibrar. Ejecuta: python -m tools.calibrate_mouse")
+            self.amp_x = self.amp_y = 0.30
+            print("[MOUSE] mapeo CENITAL por defecto (sin calibrar). Si un eje va al "
+                  "reves, recalibra o ajusta CAM_ROTATE.")
 
         # Base de gestos -> matriz inversa. Un delta de imagen d se DESCOMPONE en
         # (cuanto gesto-derecha, cuanto gesto-alante) resolviendo A@steps = d.
