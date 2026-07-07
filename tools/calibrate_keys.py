@@ -42,6 +42,13 @@ WORD2KEY = {
     "ene": "n", "o": "o", "pe": "p", "cu": "q", "erre": "r", "ese": "s",
     "te": "t", "u": "u", "uve": "v", "uve doble": "w", "equis": "x",
     "i griega": "y", "ye": "y", "zeta": "z", "espacio": "space",
+    # alfabeto radiofonico: inequivoco para las letras que suenan parecido
+    # (be/de/e/pe/te/ce...). Di "delta" si "de" se confunde.
+    "alfa": "a", "bravo": "b", "charli": "c", "delta": "d", "eco": "e",
+    "foxtrot": "f", "golf": "g", "hotel": "h", "india": "i", "julieta": "j",
+    "kilo": "k", "lima": "l", "madrid": "m", "noviembre": "n", "oscar": "o",
+    "papa": "p", "quebec": "q", "romeo": "r", "sierra": "s", "tango": "t",
+    "uniforme": "u", "victor": "v", "whisky": "w", "yanqui": "y", "zulu": "z",
 }
 DELETE_WORDS = ("borrar", "borra")
 GOAL = 3            # muestras por tecla para darla por calibrada
@@ -67,12 +74,23 @@ class Voice:
         eng.LoadGrammar(Grammar(gb))
         eng.SetInputToDefaultAudioDevice()
         eng.SpeechRecognized += self._on
+        self.level_max = 0            # para detectar micro por defecto MUDO
+        self.t0 = time.perf_counter()
+        eng.AudioLevelUpdated += self._on_level
         eng.RecognizeAsync(RecognizeMode.Multiple)
         self.eng = eng
+
+    @property
+    def mic_dead(self):
+        return (self.level_max == 0 and
+                time.perf_counter() - self.t0 > 6.0)
 
     def _on(self, sender, e):
         if e.Result.Confidence >= C.KB_VOICE_CONF:
             self.events.append((time.perf_counter(), e.Result.Text.lower()))
+
+    def _on_level(self, sender, e):
+        self.level_max = max(self.level_max, e.AudioLevel)
 
     def close(self):
         try:
@@ -213,6 +231,8 @@ def main():
             elif not calibrated:
                 pct = int(kb.calib_progress * 100)
                 msg = f"Apoya las manos QUIETAS en la mesa (ASDF - JKL)... {pct}%"
+            elif voice and voice.mic_dead:
+                msg = "MICRO SIN SEÑAL: cambia la entrada por defecto en Windows (Sonido)"
             elif voice:
                 msg = "Golpea una tecla y DI su letra  (\"borrar\" descarta)"
             else:
