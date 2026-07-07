@@ -65,6 +65,10 @@ class GeoKeyboardRunner:
     def state(self):
         return "ready" if self.geo.calibrated else "calibrating"
 
+    @property
+    def progress(self):
+        return self.geo.calib_progress
+
     def tick(self, feat, now):
         for key in self.geo.update(feat, now):
             if now - self.last.get(key, -1e9) < C.DEBOUNCE_S:
@@ -201,6 +205,7 @@ class Engine:
             self.keyboard.tick(feat, now)
             info["keys"] = "".join(self.keyboard.recent)
             info["kb"] = self.keyboard.state
+            info["kb_p"] = round(getattr(self.keyboard, "progress", 1.0), 2)
         if self.gaming:
             held = self.gaming.update(feat)
             info["keys"] = " ".join(self.gaming.keys[f] for f, d in held.items() if d).upper()

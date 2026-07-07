@@ -186,47 +186,62 @@ class _FingerFSM:
 
 
 class _HandCalib:
-    """Calibracion home de UNA mano: se captura cuando la mano lleva un rato
-    completamente quieta (reposando = tocando la mesa)."""
+    """Calibracion home de UNA mano. Quietud por POSICION (no por velocidad: el
+    tembleque de los landmarks de MediaPipe hace que la velocidad nunca baje del
+    umbral). Se acumula una ventana de snapshots; si algo se mueve mas de
+    KB_STILL_POS respecto al inicio de la ventana, la ventana se reinicia. Al
+    completar KB_CALIB_STILL_S quieto, el home se captura como la MEDIA de la
+    ventana (el ruido se promedia)."""
 
     def __init__(self, hand):
         self.hand = hand
         self.ok = False
         self.home_rel = {}      # finger -> (x, y) relativo a muñeca, en tamaños de mano
         self.pitch = 0.0        # separacion media entre puntas adyacentes (id. unidades)
-        self.still_since = None
+        self.win = []           # [(t, snapshot)] mientras este quieto
+        self.progress = 0.0     # 0..1 para la interfaz
 
-    def tips_rel(self, feat, slot):
+    def reset(self):
+        self.win = []
+        self.progress = 0.0
+
+    def _snapshot(self, feat, slot):
         wx, wy = abs_xy(feat, slot, 0)
         sc = hand_scale(feat, slot)
-        out = {}
+        snap = {"__wrist__": (wx / sc, wy / sc)}    # muñeca abs: detecta traslacion
         for f in _ALL:
             tx, ty = abs_xy(feat, slot, TIP[f])
-            out[f] = ((tx - wx) / sc, (ty - wy) / sc)
-        return out
+            snap[f] = ((tx - wx) / sc, (ty - wy) / sc)
+        return snap
 
-    def try_capture(self, feat, slot, fsms, wrist_v, t):
-        quiet = (wrist_v < C.KB_STILL_EPS and
-                 all(abs(fsms[f].v) < C.KB_STILL_EPS and fsms[f].state == _FingerFSM.IDLE
-                     for f in _ALL))
-        if not quiet:
-            self.still_since = None
+    def try_capture(self, feat, slot, t):
+        snap = self._snapshot(feat, slot)
+        if self.win:
+            ref = self.win[0][1]
+            moved = any(abs(snap[k][0] - ref[k][0]) > C.KB_STILL_POS or
+                        abs(snap[k][1] - ref[k][1]) > C.KB_STILL_POS
+                        for k in snap)
+            if moved:
+                self.win = []
+        self.win.append((t, snap))
+        span = t - self.win[0][0]
+        self.progress = min(1.0, span / C.KB_CALIB_STILL_S)
+        if span < C.KB_CALIB_STILL_S:
             return
-        if self.still_since is None:
-            self.still_since = t
-            return
-        if t - self.still_since < C.KB_CALIB_STILL_S:
-            return
-        rel = self.tips_rel(feat, slot)
-        xs = sorted(rel[f][0] for f in _FINGERS)
+        # media de la ventana = home sin ruido
+        n = len(self.win)
+        mean = {k: (sum(s[k][0] for _, s in self.win) / n,
+                    sum(s[k][1] for _, s in self.win) / n) for k in snap}
+        xs = sorted(mean[f][0] for f in _FINGERS)
         gaps = [abs(xs[i + 1] - xs[i]) for i in range(len(xs) - 1)]
         pitch = sum(gaps) / len(gaps) if gaps else 0.0
         if pitch < 0.05:                    # dedos juntos/mano de canto: no vale
+            self.win = []
             return
-        self.home_rel = rel
+        self.home_rel = {f: mean[f] for f in _ALL}
         self.pitch = pitch
         self.ok = True
-        self.still_since = t                # sigue refrescando mientras repose
+        self.win = self.win[n // 2:]        # sigue refrescando mientras repose
 
 
 class GeoKeyboard:
@@ -248,6 +263,11 @@ class GeoKeyboard:
     @property
     def calibrated(self):
         return any(cal.ok for _, cal, _ in self.hands.values())
+
+    @property
+    def calib_progress(self):
+        """Progreso 0..1 de la mano que mas cerca este de calibrar."""
+        return max(cal.progress for _, cal, _ in self.hands.values())
 
     def _wrist_speed(self, feat, slot, t):
         wx, wy = abs_xy(feat, slot, 0)
@@ -314,7 +334,7 @@ class GeoKeyboard:
             if not present(feat, slot):
                 for f in _ALL:
                     fsms[f].reset()
-                cal.still_since = None
+                cal.reset()
                 self.wrist_prev.pop(slot, None)
                 continue
             wrist_v = self._wrist_speed(feat, slot, t)
@@ -325,7 +345,7 @@ class GeoKeyboard:
                 if fired and wrist_v < C.KB_WRIST_MAX_V and cal.ok:
                     ux, uy = self._contact_uxy(feat, slot, f, cal)
                     out.append({"hand": hand, "finger": f, "ux": ux, "uy": uy})
-            cal.try_capture(feat, slot, fsms, wrist_v, t)
+            cal.try_capture(feat, slot, t)
         return out
 
     def update(self, feat, t):

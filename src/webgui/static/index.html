@@ -755,7 +755,8 @@ setInterval(async()=>{
     $("#gFlat").classList.toggle("icy",frz);
     $("#gFist").classList.toggle("hot",!frz&&!i.left&&!i.right);
   }
-  if(mode==="keyboard"&&i.kb)setHint(i.kb==="calibrating"?t("kbCal"):t("kbReady"));
+  if(mode==="keyboard"&&i.kb)setHint(i.kb==="calibrating"
+    ?t("kbCal")+" "+Math.round((i.kb_p||0)*100)+"%":t("kbReady"));
   if(i.keys){$("#keys").style.display="inline-block";$("#keys").textContent=i.keys;}
   else $("#keys").style.display="none";
 },180);

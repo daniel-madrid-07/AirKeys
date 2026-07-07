@@ -117,8 +117,8 @@ KB_VEL_ENTER = 0.9        # velocidad de bajada de s (1/seg) que arma un strike
 KB_MIN_DROP = 0.08        # excursion minima de s en la bajada (tamaños de mano)
 KB_STRIKE_MAX_S = 0.35    # una bajada mas larga que esto no es un tap
 KB_REFRACTORY_S = 0.18    # tiempo minimo entre strikes del mismo dedo
-KB_STILL_EPS = 0.35       # |v| por debajo = dedo/mano quietos (para calibrar)
-KB_CALIB_STILL_S = 0.8    # segundos quieto para (re)calibrar el reposo
+KB_STILL_POS = 0.12       # deriva maxima (tamaños de mano) para considerar "quieto"
+KB_CALIB_STILL_S = 1.0    # segundos quieto para (re)calibrar el reposo
 KB_WRIST_MAX_V = 0.8      # velocidad de muñeca por encima = recolocacion, no tecla
 KB_ROW_SCALE = 0.85       # separacion vertical entre filas, relativa al pitch
 KB_MAX_KEY_DIST = 0.75    # distancia maxima a una tecla (en pitch) para aceptarla

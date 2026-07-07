@@ -22,13 +22,16 @@ la pantalla te dice que tecla golpear.
 """
 import json
 import time
+import winsound
 from collections import deque
 
 import cv2
 
 import config as C
 from src.camera import open_camera, orient
+from src.fingers import _hand_slot
 from src.hand_tracker import HandTracker, draw
+from src.tap import present
 from src.keyboard_geo import (GeoKeyboard, KEY_GRID, SAMPLES_PATH, MAP_PATH,
                               fit_map, save_map)
 
@@ -145,6 +148,8 @@ def main():
     last_info = ""
     guided = [k for row in _ROWS for k in row] + ["space"]
     gi = 0
+    was_calibrated = False
+    slot_l, slot_r = _hand_slot("Left"), _hand_slot("Right")
 
     try:
         while True:
@@ -170,6 +175,7 @@ def main():
                             counts[gone["key"]] -= 1
                             _save_samples(samples)
                             last_info = f"borrada ultima muestra ({gone['key']})"
+                            winsound.Beep(330, 120)
                         continue
                     key = WORD2KEY.get(word)
                     if not key or not pend_strikes:
@@ -181,6 +187,7 @@ def main():
                     counts[key] = counts.get(key, 0) + 1
                     _save_samples(samples)
                     last_info = f'"{word}" -> {key.upper()}  ({counts[key]}/{GOAL})'
+                    winsound.Beep(880, 70)
             else:
                 # modo guiado: cada strike es la tecla mostrada
                 while gi < len(guided) and counts.get(guided[gi], 0) >= GOAL:
@@ -192,11 +199,20 @@ def main():
                     counts[key] = counts.get(key, 0) + 1
                     _save_samples(samples)
                     last_info = f"{key.upper()}  ({counts[key]}/{GOAL})"
+                    winsound.Beep(880, 70)
 
             calibrated = kb.calibrated
+            if calibrated and not was_calibrated:
+                was_calibrated = True
+                winsound.Beep(660, 90)
+                winsound.Beep(990, 130)
             done = sum(1 for k in guided if counts.get(k, 0) >= GOAL)
-            if not calibrated:
-                msg = "Apoya las DOS manos en la mesa (ASDF - JKL) y quedate quieto"
+            hands_seen = present(feat, slot_l) or present(feat, slot_r)
+            if not hands_seen:
+                msg = "NO VEO LAS MANOS - apunta la camara a la mesa"
+            elif not calibrated:
+                pct = int(kb.calib_progress * 100)
+                msg = f"Apoya las manos QUIETAS en la mesa (ASDF - JKL)... {pct}%"
             elif voice:
                 msg = "Golpea una tecla y DI su letra  (\"borrar\" descarta)"
             else:
