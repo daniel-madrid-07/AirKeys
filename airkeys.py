@@ -56,6 +56,9 @@ def _dispatch(cmd, real):
         from tools import calibrate_tap
         sys.argv = ["calibrate_tap"]
         calibrate_tap.main()
+    elif cmd == "calibrate-keys":
+        from tools import calibrate_keys
+        calibrate_keys.main()
     elif cmd == "record":
         from src import record_air
         sys.argv = ["record_air"]

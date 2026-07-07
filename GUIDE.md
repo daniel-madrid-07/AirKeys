@@ -77,9 +77,16 @@ Types letters on an empty desk. **No training needed** (default geometric decode
 3. **Calibrate**: rest both hands on the desk in home position (ASDF / JKL;) and
    hold still for ~1 second. The status hint switches to "calibrated".
 4. Type **slowly and deliberately**: lift the finger and strike down on the
-   imaginary key. Thumbs = space. Each finger only types its own touch-typing
-   columns (index right = Y U H J N M, etc.).
-5. Resting both hands again recalibrates at any time (do it whenever you move
+   imaginary key. Each finger only competes for its own keys (the mapping in
+   `src/fingers.py FINGER_MAP` — edit it to match your personal style).
+5. **Recommended — calibrate YOUR key positions by voice** (Settings →
+   "Calibrate keys (voice)"): strike a key in the air and say its letter out
+   loud ("a", "jota", "espacio"…). The on-screen keyboard fills up as keys get
+   samples (3 per key is enough); say "borrar" to discard a mislabeled one.
+   Uses the offline Windows recognizer — no audio leaves your PC. From then on
+   the decoder uses your real positions instead of the ideal QWERTY grid
+   (`data/kb_calib.json` raw samples → `models/kb_map.json` fitted map).
+6. Resting both hands again recalibrates at any time (do it whenever you move
    your hands or the camera).
 
 How it works: press depth is invisible to a single camera, so AirKeys never

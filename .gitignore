@@ -6,6 +6,7 @@ __pycache__/
 # Datos de usuario (grabaciones, calibracion, modelos entrenados)
 data/
 models/*.pt
+models/kb_map.json
 models/mouse_axes.npz
 models/mouse_calib.npz
 settings.json

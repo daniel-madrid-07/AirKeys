@@ -22,9 +22,16 @@ La tecla se decide por GEOMETRIA: en el contacto la punta esta sobre la superfic
 comparada con la rejilla QWERTY anclada al reposo, da la tecla. Cada dedo solo
 compite por SUS columnas de mecanografia; los pulgares son espacio.
 """
+import json
+from statistics import median
+
 import config as C
-from src.fingers import _hand_slot
+from src.fingers import _hand_slot, FINGER_MAP
 from src.tap import TIP, MCP, abs_xy, present, hand_scale
+
+# calibracion por voz (tools/calibrate_keys): muestras crudas y mapa ajustado
+SAMPLES_PATH = C.DATA_DIR / "kb_calib.json"
+MAP_PATH = C.MODEL_DIR / "kb_map.json"
 
 # rejilla QWERTY: tecla -> (fila, columna). fila 0 = superior (QWERTY),
 # 1 = central/home (ASDF...), 2 = inferior (ZXCV...)
@@ -38,30 +45,82 @@ KEY_GRID = {
 }
 HOME_ROW = 1
 
-# columnas de cada dedo (mecanografia estandar) y su columna home
-FINGER_COLS = {
-    ("Left", "pinky"): [0], ("Left", "ring"): [1], ("Left", "middle"): [2],
-    ("Left", "index"): [3, 4],
-    ("Right", "index"): [5, 6], ("Right", "middle"): [7],
-    ("Right", "ring"): [8], ("Right", "pinky"): [9],
-}
-HOME_COL = {
-    ("Left", "pinky"): 0, ("Left", "ring"): 1, ("Left", "middle"): 2,
-    ("Left", "index"): 3,
-    ("Right", "index"): 6, ("Right", "middle"): 7,
-    ("Right", "ring"): 8, ("Right", "pinky"): 9,
-}
 _FINGERS = ["index", "middle", "ring", "pinky"]        # dedos de letras
 _ALL = _FINGERS + ["thumb"]                            # + espacio
 
+# El reparto tecla->dedo es el DEL USUARIO (src/fingers.py FINGER_MAP): solo el
+# dedo dueño de una tecla compite por ella. Ej.: indice derecho = N M J U K I;
+# indice izquierdo cubre D B R F T G X C V Y H (estilo personal, cruza columnas).
+_cands_cache = {}
+_homecol_cache = {}
+
 
 def _candidates(hand, finger):
-    """Teclas (de TARGET_KEYS) que puede pulsar ese dedo."""
+    """Teclas (de TARGET_KEYS) que puede pulsar ese dedo segun FINGER_MAP."""
+    key = (hand, finger)
+    if key in _cands_cache:
+        return _cands_cache[key]
     if finger == "thumb":
-        return ["space"] if "space" in C.TARGET_KEYS else []
-    cols = FINGER_COLS[(hand, finger)]
-    return [k for k, (r, c) in KEY_GRID.items()
-            if c in cols and k in C.TARGET_KEYS]
+        out = ["space"] if "space" in C.TARGET_KEYS else []
+    else:
+        out = [k for k in C.TARGET_KEYS
+               if FINGER_MAP.get(k) == (hand, finger) and k in KEY_GRID]
+    _cands_cache[key] = out
+    return out
+
+
+def _home_col(hand, finger):
+    """Columna de reposo del dedo: mediana de las columnas de sus teclas de la
+    fila home (o de todas si no tiene ninguna en home)."""
+    key = (hand, finger)
+    if key in _homecol_cache:
+        return _homecol_cache[key]
+    ks = _candidates(hand, finger)
+    cols = sorted(KEY_GRID[k][1] for k in ks if KEY_GRID[k][0] == HOME_ROW)
+    if not cols:
+        cols = sorted(KEY_GRID[k][1] for k in ks) if ks else []
+    # mediana BAJA: con {J(6), K(7)} el reposo natural del indice es J
+    out = cols[(len(cols) - 1) // 2] if cols else None
+    _homecol_cache[key] = out
+    return out
+
+
+def fit_map(samples):
+    """Ajusta el mapa de teclas desde muestras {key, hand, finger, ux, uy}
+    (ux/uy = posicion del contacto relativa al home, en unidades de PITCH).
+    Robusto: centro = mediana, dispersion = MAD escalado (con suelo)."""
+    by = {}
+    for s in samples:
+        by.setdefault(s["key"], []).append(s)
+    out = {}
+    for key, ss in by.items():
+        uxs = [s["ux"] for s in ss]
+        uys = [s["uy"] for s in ss]
+        cx, cy = median(uxs), median(uys)
+        sx = max(0.18, median([abs(x - cx) for x in uxs]) * 1.4826)
+        sy = max(0.18, median([abs(y - cy) for y in uys]) * 1.4826)
+        hf = {}
+        for s in ss:
+            k = (s["hand"], s["finger"])
+            hf[k] = hf.get(k, 0) + 1
+        hand, finger = max(hf, key=hf.get)
+        out[key] = {"hand": hand, "finger": finger, "ux": cx, "uy": cy,
+                    "sx": sx, "sy": sy, "n": len(ss)}
+    return out
+
+
+def save_map(kmap):
+    MAP_PATH.write_text(json.dumps(kmap, indent=1), encoding="utf-8")
+
+
+def load_map():
+    if not MAP_PATH.exists():
+        return None
+    try:
+        m = json.loads(MAP_PATH.read_text(encoding="utf-8"))
+        return m if isinstance(m, dict) and m else None
+    except Exception:
+        return None
 
 
 def _signal(feat, slot, finger):
@@ -176,13 +235,15 @@ class GeoKeyboard:
     update(feat, t) -> lista de teclas ('a'..'z', 'space') pulsadas en este frame.
     """
 
-    def __init__(self):
+    def __init__(self, use_map=True):
         self.hands = {}         # hand -> (slot, _HandCalib, {finger: _FingerFSM})
         for hand in ("Left", "Right"):
             slot = _hand_slot(hand)
             self.hands[hand] = (slot, _HandCalib(hand),
                                 {f: _FingerFSM() for f in _ALL})
         self.wrist_prev = {}    # slot -> (x, y, t)
+        # mapa calibrado por voz (si existe): posiciones REALES de tus teclas
+        self.kmap = load_map() if use_map else None
 
     @property
     def calibrated(self):
@@ -198,36 +259,57 @@ class GeoKeyboard:
         dt = max(1e-3, t - prev[2])
         return (((wx - prev[0]) ** 2 + (wy - prev[1]) ** 2) ** 0.5) / sc / dt
 
-    def _decode(self, feat, slot, hand, finger, cal):
-        """Tecla mas cercana a la punta EN EL CONTACTO (esta sobre la superficie)."""
+    def _contact_uxy(self, feat, slot, finger, cal):
+        """Posicion de la punta en el contacto, relativa a su home y en unidades
+        de PITCH (invariante a mano/camara/distancia)."""
+        wx, wy = abs_xy(feat, slot, 0)
+        sc = hand_scale(feat, slot)
+        tx, ty = abs_xy(feat, slot, TIP[finger])
+        hx, hy = cal.home_rel[finger]
+        return (((tx - wx) / sc - hx) / cal.pitch,
+                ((ty - wy) / sc - hy) / cal.pitch)
+
+    def _decode(self, hand, finger, ux, uy):
+        """Tecla desde la posicion del contacto. Si hay mapa calibrado por voz,
+        se usan TUS posiciones reales; si no, la rejilla QWERTY ideal."""
+        if self.kmap:
+            cands = [(k, m) for k, m in self.kmap.items()
+                     if m["hand"] == hand and m["finger"] == finger]
+            if cands:
+                best, best_d2 = None, None
+                for k, m in cands:
+                    d2 = (((ux - m["ux"]) / m["sx"]) ** 2 +
+                          ((uy - m["uy"]) / m["sy"]) ** 2)
+                    if best_d2 is None or d2 < best_d2:
+                        best, best_d2 = k, d2
+                return best if best_d2 <= C.KB_MAX_MAHA ** 2 else None
+            # dedo sin muestras en el mapa -> cae a la rejilla ideal
         cands = _candidates(hand, finger)
         if not cands:
             return None
         if finger == "thumb":
             return "space"
-        wx, wy = abs_xy(feat, slot, 0)
-        sc = hand_scale(feat, slot)
-        tx, ty = abs_xy(feat, slot, TIP[finger])
-        rel = ((tx - wx) / sc, (ty - wy) / sc)
-        hx, hy = cal.home_rel[finger]
-        dx, dy = rel[0] - hx, rel[1] - hy
         # sentido de la fila superior: los dedos apuntan "arriba" en la imagen
         # (GUIDE: rotar la camara hasta que salga natural), asi que la fila 0
-        # (QWERTY) queda a MENOR y de imagen que la home: dy negativo.
-        col0 = HOME_COL[(hand, finger)]
+        # (QWERTY) queda a MENOR y de imagen que la home: uy negativo.
+        col0 = _home_col(hand, finger)
+        if col0 is None:
+            return None
         best, best_d2 = None, None
         for k in cands:
             row, col = KEY_GRID[k]
-            kx = (col - col0) * cal.pitch
-            ky = (row - HOME_ROW) * cal.pitch * C.KB_ROW_SCALE
-            d2 = (dx - kx) ** 2 + (dy - ky) ** 2
+            kx = col - col0
+            ky = (row - HOME_ROW) * C.KB_ROW_SCALE
+            d2 = (ux - kx) ** 2 + (uy - ky) ** 2
             if best_d2 is None or d2 < best_d2:
                 best, best_d2 = k, d2
-        lim = (C.KB_MAX_KEY_DIST * cal.pitch) ** 2
-        return best if best_d2 is not None and best_d2 <= lim else None
+        return best if best_d2 is not None and best_d2 <= C.KB_MAX_KEY_DIST ** 2 else None
 
-    def update(self, feat, t):
-        typed = []
+    def strikes(self, feat, t):
+        """Eventos de contacto de este frame (sin decodificar):
+        [{hand, finger, ux, uy}] con ux/uy relativos al home en unidades de pitch.
+        Lo usa update() para teclear y tools/calibrate_keys para etiquetar."""
+        out = []
         for hand, (slot, cal, fsms) in self.hands.items():
             if not present(feat, slot):
                 for f in _ALL:
@@ -241,8 +323,15 @@ class GeoKeyboard:
                 fired = fsms[f].update(s, t)
                 # mano desplazandose (recolocacion): no es una pulsacion
                 if fired and wrist_v < C.KB_WRIST_MAX_V and cal.ok:
-                    key = self._decode(feat, slot, hand, f, cal)
-                    if key:
-                        typed.append(key)
+                    ux, uy = self._contact_uxy(feat, slot, f, cal)
+                    out.append({"hand": hand, "finger": f, "ux": ux, "uy": uy})
             cal.try_capture(feat, slot, fsms, wrist_v, t)
+        return out
+
+    def update(self, feat, t):
+        typed = []
+        for ev in self.strikes(feat, t):
+            key = self._decode(ev["hand"], ev["finger"], ev["ux"], ev["uy"])
+            if key:
+                typed.append(key)
         return typed

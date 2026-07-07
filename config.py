@@ -122,6 +122,10 @@ KB_CALIB_STILL_S = 0.8    # segundos quieto para (re)calibrar el reposo
 KB_WRIST_MAX_V = 0.8      # velocidad de muñeca por encima = recolocacion, no tecla
 KB_ROW_SCALE = 0.85       # separacion vertical entre filas, relativa al pitch
 KB_MAX_KEY_DIST = 0.75    # distancia maxima a una tecla (en pitch) para aceptarla
+# Con mapa calibrado por VOZ (tools/calibrate_keys -> models/kb_map.json):
+KB_MAX_MAHA = 2.6         # distancia maxima normalizada por la dispersion por tecla
+KB_VOICE_PAIR_S = 2.0     # ventana golpe<->voz para emparejar muestra
+KB_VOICE_CONF = 0.45      # confianza minima del reconocedor de voz
 
 # --- Inferencia (modo con modelo entrenado) ---
 KEY_CONF_MIN = 0.30  # confianza minima del experto para aceptar la tecla de un tap

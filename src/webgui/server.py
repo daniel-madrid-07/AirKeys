@@ -159,7 +159,8 @@ app = Flask(__name__, static_folder=None)
 logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
 # herramientas externas que la UI puede lanzar (whitelist)
-ALLOWED_TOOLS = {"calibrate-mouse", "check", "record", "train", "calibrate-tap"}
+ALLOWED_TOOLS = {"calibrate-mouse", "check", "record", "train", "calibrate-tap",
+                 "calibrate-keys"}
 
 
 @app.before_request
